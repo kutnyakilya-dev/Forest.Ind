@@ -10,7 +10,7 @@
     <!-- Используем PointerLockControls для обзора мыши на ПК -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
     
-    <!-- Добавляем зависимости Firebase -->
+    <!-- Добавляем зависимости Firebase (compat-версии для простоты) -->
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js"></script>
@@ -137,7 +137,22 @@
         // --- Инициализация Firebase и Аутентификация ---
         
         /**
-         * Инициализирует Firebase и выполняет вход пользователя.
+         * Удаляет документ игрока при закрытии или перезагрузке страницы.
+         */
+        function cleanupPlayerOnDisconnect() {
+            if (db && userId) {
+                // Используем .delete() для удаления документа
+                getPlayerDocRef(userId).delete().then(() => {
+                    console.log("Player document removed.");
+                }).catch(e => {
+                    console.error("Error removing player document:", e);
+                });
+            }
+        }
+
+        /**
+         * Инициализирует Firebase, выполняет вход и возвращает Promise,
+         * который разрешается, когда состояние аутентификации установлено.
          */
         async function setupFirebase() {
             // Конфигурация Firebase, предоставленная средой Canvas
@@ -173,27 +188,47 @@
                 auth = firebase.auth();
                 
                 firebase.firestore.setLogLevel('debug'); // Включить логирование Firestore
+                
+                // Используем Promise и onAuthStateChanged для надежного получения userId
+                await new Promise((resolve, reject) => {
+                    const unsubscribe = auth.onAuthStateChanged((user) => {
+                        unsubscribe(); // Отписка после первого вызова
+                        if (user) {
+                            userId = user.uid;
+                            isAuthReady = true;
+                            // Обновляем отображение, чтобы показать, откуда получены данные
+                            const authSource = usingCanvasAuth ? " (Canvas)" : " (Внешний/Анонимный)";
+                            document.getElementById('userIdDisplay').textContent = `Ваш ID: ${userId}` + authSource;
+                            console.log("Firebase initialized. User ID:", userId);
+                            resolve();
+                        } else {
+                            // Если пользователь не вошел после попытки, считаем это ошибкой
+                            reject(new Error("Authentication state is null after sign-in attempt."));
+                        }
+                    }, reject);
+                    
+                    // Запускаем процесс входа, который инициирует onAuthStateChanged
+                    (async () => {
+                        try {
+                            if (initialAuthToken) {
+                                await auth.signInWithCustomToken(initialAuthToken);
+                            } else {
+                                await auth.signInAnonymously();
+                            }
+                        } catch(e) {
+                            // Если sign-in не удался, onAuthStateChanged может сработать с null или произойдет reject.
+                            console.error("Initial sign-in attempt failed:", e);
+                        }
+                    })();
+                });
 
-                if (initialAuthToken) {
-                    // Используем токен, предоставленный средой Canvas
-                    await auth.signInWithCustomToken(initialAuthToken);
-                } else {
-                    // Используем анонимный вход для внешних развертываний или если токен отсутствует
-                    await auth.signInAnonymously();
-                }
-
-                const user = auth.currentUser;
-                if (user) {
-                    userId = user.uid;
-                    isAuthReady = true;
-                    // Обновляем отображение, чтобы показать, откуда получены данные
-                    const authSource = usingCanvasAuth ? " (Canvas)" : " (Внешний/Анонимный)";
-                    document.getElementById('userIdDisplay').textContent = `Ваш ID: ${userId}` + authSource;
-                    console.log("Firebase initialized. User ID:", userId);
-                }
+                // Добавление обработчика отключения после успешного входа
+                window.addEventListener('beforeunload', cleanupPlayerOnDisconnect);
                 
             } catch (e) {
-                console.error("Firebase initialization or sign-in failed:", e);
+                console.error("Firebase setup failed:", e);
+                // В случае ошибки сбросить userId
+                userId = null;
             }
         }
         
@@ -608,7 +643,8 @@
         // Запуск приложения и Firebase
         // -----------------------------------------------------------
         window.onload = async function () {
-            await setupFirebase(); // Сначала настраиваем Firebase и аутентификацию
+            // Пробуем настроить Firebase и дождаться подтверждения userId
+            await setupFirebase(); 
             
             if (userId) {
                 init(); // Инициализация Three.js сцены
@@ -616,7 +652,8 @@
                 animate(); // Запуск игрового цикла
             } else {
                 console.error("User ID not set, cannot start multiplayer.");
-                document.getElementById('info').innerHTML = '<p class="text-xl">Ошибка: Не удалось подключиться к многопользовательскому режиму. Попробуйте перезагрузить страницу.</p>';
+                // Показываем более конкретное сообщение об ошибке
+                document.getElementById('info').innerHTML = '<p class="text-xl text-red-400">Ошибка подключения к Firebase.</p><p class="mt-2 text-sm">Проверьте консоль браузера на наличие ошибок аутентификации или правил безопасности Firebase.</p><p class="mt-4">Попробуйте перезагрузить страницу.</p>';
             }
         }
 
