@@ -2,131 +2,107 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Лесное Приключение (Мультиплеер FPS)</title>
-    <!-- Загрузка основной библиотеки Three.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>3D Multiplayer World</title>
     <style>
-        /* Стили для полного экрана и адаптивного дизайна */
         body {
             margin: 0;
             overflow: hidden;
-            font-family: 'Inter', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background-color: #000;
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            touch-action: none; /* Отключаем стандартный тач-скролл для управления камерой */
+            color: white;
         }
         canvas {
             display: block;
-            width: 100%;
-            height: 100%;
         }
-        
-        /* Стартовый экран */
-        #startScreen {
+        #ui-container {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.9);
-            color: #fff;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            cursor: pointer;
-            z-index: 1000;
+            gap: 10px;
         }
-        #startScreen h1 { font-size: 3rem; margin-bottom: 0.5rem; }
-        #startScreen p { font-size: 1.2rem; margin-top: 0; color: #ccc; }
-        
-        /* Контейнер для тегов пользователей */
-        #tags-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 999;
-        }
-
-        /* Стиль для тега (никнейма) игрока */
-        .username-tag {
-            position: absolute;
-            padding: 2px 5px;
+        #fullscreen-btn {
+            padding: 10px 15px;
             background-color: rgba(0, 0, 0, 0.5);
-            border-radius: 3px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            white-space: nowrap;
-            transform: translate(-50%, -50%);
-            transition: opacity 0.1s;
+            color: white;
+            border: 1px solid white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
         }
-
-        /* --- МОБИЛЬНОЕ УПРАВЛЕНИЕ --- */
+        #player-id-display {
+            padding: 10px;
+            background-color: rgba(0,0,0,0.5);
+            border-radius: 8px;
+            font-size: 12px;
+            word-break: break-all;
+        }
+        /* Стили для мобильного управления */
         #mobile-controls {
-            display: none; /* Изначально скрыто */
             position: absolute;
             bottom: 20px;
-            left: 0;
             width: 100%;
-            height: 120px; 
-            z-index: 100;
-            pointer-events: auto; 
-            grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
-            grid-template-rows: 1fr 1fr;
-            padding: 0 10px;
+            display: none; /* Скрыто по умолчанию, будет показано через JS на мобильных */
+            justify-content: space-between;
+            align-items: flex-end;
+            padding: 0 20px;
             box-sizing: border-box;
+            z-index: 100;
+            user-select: none; /* Отключить выделение текста при нажатии */
         }
-
-        .control-button {
-            background-color: rgba(100, 100, 100, 0.7);
-            color: #fff;
-            border: 2px solid rgba(255, 255, 255, 0.9);
-            border-radius: 12px;
-            margin: 5px;
-            font-size: 1.5rem;
+        .control-cluster {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        .control-btn {
+            width: 70px;
+            height: 70px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
-            user-select: none;
-            touch-action: manipulation;
-            transition: background-color 0.1s;
+            font-size: 32px;
+            color: rgba(255, 255, 255, 0.8);
         }
-
-        .control-button:active {
-            background-color: rgba(50, 50, 50, 0.9);
-        }
-        
-        /* Расположение кнопок */
-        #move-forward { grid-column: 2 / span 1; grid-row: 1 / span 1; }
-        #move-left    { grid-column: 1 / span 1; grid-row: 2 / span 1; }
-        #move-backward{ grid-column: 2 / span 1; grid-row: 2 / span 1; }
-        #move-right   { grid-column: 3 / span 1; grid-row: 2 / span 1; }
-        #jump         { grid-column: 5 / span 1; grid-row: 2 / span 1; background-color: rgba(0, 150, 255, 0.7); }
-
     </style>
+</head>
+<body>
+    <div id="ui-container">
+        <button id="fullscreen-btn">Во весь экран</button>
+        <div id="player-id-display">Загрузка...</div>
+    </div>
+    
+    <!-- Элементы управления для мобильных устройств -->
+    <div id="mobile-controls">
+        <div class="control-cluster">
+            <div id="turn-left" class="control-btn">⟲</div>
+            <div id="turn-right" class="control-btn">⟳</div>
+        </div>
+        <div class="control-cluster">
+            <div id="move-forward" class="control-btn">▲</div>
+            <div id="move-backward" class="control-btn">▼</div>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
 
     <script type="module">
-        // Импорт PointerLockControls как ES-модуль (FIXED)
-        import { PointerLockControls } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/controls/PointerLockControls.js';
+        // --- Библиотеки ---
+        import * as THREE from 'https://cdn.skypack.dev/three@0.132.2';
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, setDoc, doc, collection, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-        // Импорт Firebase v9 модулей
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        
-        // --- Глобальные переменные Firebase (Обязательно) ---
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const fallbackFirebaseConfig = {
+        // --- Конфигурация Firebase ---
+        // Используем предоставленную конфигурацию
+        const firebaseConfig = {
             apiKey: "AIzaSyARZvFpMMn5t8pg5gb2bWA6OrZC1L8DBSA",
             authDomain: "my-pet-c8684.firebaseapp.com",
             projectId: "my-pet-c8684",
@@ -134,520 +110,292 @@
             messagingSenderId: "102742166711",
             appId: "1:102742166711:web:aa6b251fd6d6c993c71132"
         };
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : fallbackFirebaseConfig;
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
         
-        let app;
-        let db;
-        let auth;
-        let userId = null;
-        let playerRef = null;
-        let otherPlayers = {};
-        const multiplayerReady = { value: false };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
 
-        // --- Переменные игры ---
-        let camera, scene, renderer, controls;
-        let clock = new THREE.Clock();
+        // --- Глобальные переменные ---
+        let scene, camera, renderer, clock;
+        let localPlayer, localPlayerId;
+        const players = {}; // Хранилище для объектов других игроков
+        const movement = { forward: 0, turn: 0 };
+        const speed = 5;
+        const turnSpeed = Math.PI / 2;
+        const MAP_SIZE = 100;
         
-        let moveForward = false;
-        let moveBackward = false;
-        let moveLeft = false;
-        let moveRight = false;
-        let canJump = false;
-        
-        let velocity = new THREE.Vector3();
-        let direction = new THREE.Vector3();
-        
-        const forestSize = 100;
-        const treeCount = 100;
-        let raycaster;
-        const collisionObjects = [];
-        
-        let isMobile = /Mobi|Android/i.test(navigator.userAgent);
-        let rotationSpeed = isMobile ? 0.005 : 0.002;
-        let touchX = 0;
-
-        /**
-         * Устанавливает соединение с Firebase и аутентифицирует пользователя.
-         */
-        async function setupFirebase() {
-            try {
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-
-                return new Promise((resolve) => {
-                    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-                        unsubscribe(); 
-                        if (user) {
-                            userId = user.uid;
-                            resolve(true);
-                        } else if (initialAuthToken) {
-                            try {
-                                await signInWithCustomToken(auth, initialAuthToken);
-                                userId = auth.currentUser.uid;
-                            } catch (error) {
-                                await signInAnonymously(auth);
-                                userId = auth.currentUser.uid;
-                            }
-                        } else {
-                            try {
-                                await signInAnonymously(auth);
-                                userId = auth.currentUser.uid;
-                            } catch (error) {
-                                console.error("Firebase: Anonymous sign-in failed.", error);
-                                resolve(false);
-                            }
-                        }
-                    });
-                });
-            } catch (error) {
-                console.error("Firebase setup failed:", error);
-                return false;
-            }
-        }
-
-        /**
-         * Инициализирует многопользовательский режим.
-         */
-        function startMultiplayer() {
-            if (!userId) return;
-
-            const collectionPath = `artifacts/${appId}/public/data/players`;
-            playerRef = doc(db, collectionPath, userId);
-            
-            // Отправляем начальную позицию и ID игрока
-            setPlayerPosition(camera.position, camera.rotation.y);
-
-            const playersCollection = collection(db, collectionPath);
-            onSnapshot(playersCollection, (snapshot) => {
-                snapshot.docChanges().forEach(change => {
-                    const data = change.doc.data();
-                    const otherUserId = change.doc.id;
-                    
-                    if (otherUserId === userId) return;
-
-                    if (change.type === "added" || change.type === "modified") {
-                        handlePlayerUpdate(otherUserId, data);
-                    } else if (change.type === "removed") {
-                        handlePlayerRemoval(otherUserId);
-                    }
-                });
-            });
-
-            window.addEventListener('beforeunload', cleanupPlayer);
-            multiplayerReady.value = true;
-        }
-
-        /**
-         * Обновляет позицию игрока в Firestore.
-         */
-        function setPlayerPosition(position, rotationY) {
-            if (!playerRef) return;
-            
-            setDoc(playerRef, {
-                position: { x: position.x, y: position.y, z: position.z },
-                rotationY: rotationY,
-                userId: userId,
-                lastSeen: serverTimestamp()
-            }, { merge: true });
-        }
-
-        /**
-         * Обрабатывает обновление данных другого игрока.
-         */
-        function handlePlayerUpdate(id, data) {
-            if (!otherPlayers[id]) {
-                // Создание аватара для нового игрока
-                const geometry = new THREE.CylinderGeometry(0.5, 0.5, 2, 16);
-                const material = new THREE.MeshLambertMaterial({ color: Math.random() * 0xffffff });
-                const avatar = new THREE.Mesh(geometry, material);
-                avatar.position.y = 1; // Центр на уровне земли
-                scene.add(avatar);
-                otherPlayers[id] = avatar;
-
-                // Создание тега с ID
-                const usernameDiv = document.createElement('div');
-                usernameDiv.className = 'username-tag';
-                usernameDiv.textContent = `Игрок: ${id.substring(0, 6)}`;
-                usernameDiv.style.color = `#${material.color.getHexString()}`;
-                document.getElementById('tags-container').appendChild(usernameDiv);
-                otherPlayers[id].tag = { element: usernameDiv, object: avatar };
-            }
-
-            const avatar = otherPlayers[id];
-            
-            if (data.position) {
-                // Устанавливаем позицию, но держим аватар немного ниже, 
-                // так как камера находится на высоте 10
-                avatar.position.set(data.position.x, data.position.y - 8, data.position.z);
-            }
-            if (data.rotationY !== undefined) {
-                avatar.rotation.y = data.rotationY;
-            }
-        }
-        
-        /**
-         * Обрабатывает удаление другого игрока.
-         */
-        function handlePlayerRemoval(id) {
-            if (otherPlayers[id]) {
-                const avatar = otherPlayers[id];
-                scene.remove(avatar);
-                if (avatar.tag) {
-                    document.getElementById('tags-container').removeChild(avatar.tag.element);
-                }
-                delete otherPlayers[id];
-            }
-        }
-        
-        /**
-         * Очищает документ игрока в Firestore при выходе.
-         */
-        function cleanupPlayer() {
-            if (playerRef) {
-                deleteDoc(playerRef);
-            }
-        }
-        
-        // --- THREE.JS Инициализация ---
-
-        function createForest() {
-            const floorHeight = 0;
-            
-            // Ствол (коричневый)
-            const trunkGeometry = new THREE.CylinderGeometry(0.5, 0.8, 10, 8);
-            const trunkMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
-            // Крона (зеленый конус)
-            const crownGeometry = new THREE.ConeGeometry(4, 12, 8);
-            const crownMaterial = new THREE.MeshLambertMaterial({ color: 0x38761d });
-            
-            for (let i = 0; i < treeCount; i++) {
-                // Позиция: избегаем слишком близко к центру (где стартует игрок)
-                let x, z;
-                do {
-                    x = (Math.random() - 0.5) * (forestSize * 0.8);
-                    z = (Math.random() - 0.5) * (forestSize * 0.8);
-                } while (Math.abs(x) < 5 && Math.abs(z) < 5); // Обеспечиваем свободный старт
-                
-                // Ствол
-                const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
-                trunk.position.set(x, floorHeight + 5, z);
-                scene.add(trunk);
-                collisionObjects.push(trunk);
-                
-                // Крона
-                const crown = new THREE.Mesh(crownGeometry, crownMaterial);
-                crown.position.set(x, floorHeight + 12, z);
-                scene.add(crown);
-            }
-        }
-
+        // --- Инициализация ---
         function init() {
-            // Камера: высота 10 - это стандартный уровень глаз
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 10, 0); 
-            
             // Сцена
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x87ceeb); // Небо
-            scene.fog = new THREE.Fog(0x87ceeb, 0, forestSize * 0.8); // Туман
-            
+            scene.background = new THREE.Color(0x87ceeb);
+            scene.fog = new THREE.Fog(0x87ceeb, 0, MAP_SIZE * 0.75);
+            clock = new THREE.Clock();
+
+            // Камера
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 10, 20);
+            camera.lookAt(0, 0, 0);
+
             // Рендерер
-            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gameCanvas'), antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
-            document.body.appendChild(renderer.domElement);
+            renderer.shadowMap.enabled = true;
+
+            // Освещение
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(-30, 50, -30);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            scene.add(dirLight);
+
+            // Создание карты
+            createMap();
             
-            // Свет
-            scene.add(new THREE.HemisphereLight(0xeeeeff, 0x777788, 0.75));
-            scene.add(new THREE.DirectionalLight(0xffddaa, 0.5));
+            // Настройка управления и событий
+            setupControls();
+            window.addEventListener('resize', onWindowResize);
             
-            // Пол
-            const floorGeometry = new THREE.PlaneGeometry(forestSize, forestSize, 1, 1);
-            const floorMaterial = new THREE.MeshLambertMaterial({ color: 0x55aa55 }); // Зеленая трава
-            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-            floor.rotation.x = -Math.PI / 2;
-            floor.position.y = 0;
-            scene.add(floor);
-            collisionObjects.push(floor); // Для проверки нахождения на земле
+            // Запуск Firebase
+            setupFirebase();
+
+            // Запуск игрового цикла
+            animate();
+        }
+
+        // --- Создание игрового мира ---
+        function createMap() {
+            // Земля
+            const groundGeometry = new THREE.PlaneGeometry(MAP_SIZE, MAP_SIZE);
+            const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x228b22 });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // Деревья
+            const treeCount = 150;
+            for (let i = 0; i < treeCount; i++) {
+                createTree(
+                    (Math.random() - 0.5) * MAP_SIZE,
+                    (Math.random() - 0.5) * MAP_SIZE
+                );
+            }
+        }
+
+        function createTree(x, z) {
+            const trunkHeight = Math.random() * 4 + 2;
+            const trunkGeo = new THREE.CylinderGeometry(0.3, 0.4, trunkHeight, 8);
+            const trunkMat = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+            const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+            trunk.position.set(x, trunkHeight / 2, z);
+            trunk.castShadow = true;
             
-            createForest(); // Создаем деревья
+            const leavesHeight = Math.random() * 3 + 3;
+            const leavesGeo = new THREE.ConeGeometry(2, leavesHeight, 8);
+            const leavesMat = new THREE.MeshLambertMaterial({ color: 0x006400 });
+            const leaves = new THREE.Mesh(leavesGeo, leavesMat);
+            leaves.position.set(x, trunkHeight + leavesHeight / 2, z);
+            leaves.castShadow = true;
+
+            scene.add(trunk);
+            scene.add(leaves);
+        }
+
+        // --- Игрок ---
+        function createPlayer(id, isLocal = false) {
+            const playerGeo = new THREE.CapsuleGeometry(0.5, 1, 4, 8);
+            // Генерируем цвет на основе ID для консистентности
+            const color = new THREE.Color('#' + id.substring(0, 6)); 
+            const playerMat = new THREE.MeshStandardMaterial({ color });
+            const playerMesh = new THREE.Mesh(playerGeo, playerMat);
+            playerMesh.castShadow = true;
+            playerMesh.position.y = 1;
             
-            // Управление
-            if (!isMobile) {
-                // На ПК используем PointerLockControls
-                controls = new PointerLockControls(camera, document.body);
-                scene.add(controls.getObject());
-                renderer.domElement.addEventListener('click', () => {
-                    if (controls && controls.lock) controls.lock();
-                }, false);
-            } else {
-                // На мобильных добавляем камеру напрямую, управление тач-движением
-                scene.add(camera);
-                setupMobileControls();
-                renderer.domElement.addEventListener('touchstart', onTouchStart, false);
-                renderer.domElement.addEventListener('touchmove', onTouchMove, false);
+            const playerContainer = new THREE.Object3D();
+            playerContainer.add(playerMesh);
+
+            if (isLocal) {
+                // Размещаем локального игрока в случайном месте
+                playerContainer.position.set(
+                    (Math.random() - 0.5) * 20,
+                    0,
+                    (Math.random() - 0.5) * 20
+                );
+                // Добавляем камеру к контейнеру игрока
+                playerContainer.add(camera);
+                camera.position.set(0, 5, 8); // Позиция камеры относительно игрока
+                // Заставляем камеру смотреть на центр игрока (в локальных координатах контейнера)
+                camera.lookAt(0, 1, 0);
             }
             
-            // Общие слушатели
-            document.addEventListener('keydown', onKeyDown, false);
-            document.addEventListener('keyup', onKeyUp, false);
-            raycaster = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0), 0, 1.5);
-            window.addEventListener('resize', onWindowResize, false);
-        }
-        
-        // --- Логика UI/Ввода ---
-
-        function requestFullscreen(element) {
-            if (element.requestFullscreen) {
-                element.requestFullscreen();
-            } else if (element.mozRequestFullScreen) {
-                element.mozRequestFullScreen();
-            } else if (element.webkitRequestFullscreen) {
-                element.webkitRequestFullscreen();
-            } else if (element.msRequestFullscreen) {
-                element.msRequestFullscreen();
-            }
-        }
-        
-        function setupMobileControls() {
-            const controlsDiv = document.getElementById('mobile-controls');
-            controlsDiv.style.display = 'grid';
-
-            // Привязка виртуальных кнопок
-            const buttons = [
-                { id: 'move-forward', action: 'forward' },
-                { id: 'move-backward', action: 'backward' },
-                { id: 'move-left', action: 'left' },
-                { id: 'move-right', action: 'right' },
-            ];
-
-            buttons.forEach(btn => {
-                const element = document.getElementById(btn.id);
-                element.addEventListener('touchstart', (e) => { e.preventDefault(); setMovement(btn.action, true); }, false);
-                element.addEventListener('touchend', (e) => { e.preventDefault(); setMovement(btn.action, false); }, false);
-                element.addEventListener('touchcancel', (e) => { e.preventDefault(); setMovement(btn.action, false); }, false);
-            });
-            
-            // Прыжок
-            document.getElementById('jump').addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                if (canJump) { velocity.y += 200; canJump = false; }
-            }, false);
-        }
-        
-        function setMovement(action, isDown) {
-            switch (action) {
-                case 'forward': moveForward = isDown; break;
-                case 'backward': moveBackward = isDown; break;
-                case 'left': moveLeft = isDown; break;
-                case 'right': moveRight = isDown; break;
-            }
+            scene.add(playerContainer);
+            return playerContainer;
         }
 
-        function onKeyDown(event) {
-            if (isMobile || (controls && !controls.isLocked)) return;
-            switch (event.keyCode) {
-                case 87: moveForward = true; break; // W
-                case 65: moveLeft = true; break; // A
-                case 83: moveBackward = true; break; // S
-                case 68: moveRight = true; break; // D
-                case 32: if (canJump) { velocity.y += 200; canJump = false; } break; // SPACE
-            }
-        }
-        
-        function onKeyUp(event) {
-            if (isMobile || (controls && !controls.isLocked)) return;
-            switch (event.keyCode) {
-                case 87: moveForward = false; break;
-                case 65: moveLeft = false; break;
-                case 83: moveBackward = false; break;
-                case 68: moveRight = false; break;
-            }
-        }
+        // --- Firebase ---
+        function setupFirebase() {
+            onAuthStateChanged(auth, user => {
+                if (user) {
+                    localPlayerId = user.uid;
+                    document.getElementById('player-id-display').textContent = `Ваш ID: ${localPlayerId}`;
 
-        function onTouchStart(event) {
-            if (event.touches.length === 1) {
-                touchX = event.touches[0].pageX;
-            }
-        }
+                    localPlayer = createPlayer(localPlayerId, true);
+                    updatePlayerPositionInFirestore();
 
-        function onTouchMove(event) {
-            if (event.touches.length === 1) {
-                event.preventDefault(); // Предотвратить скроллинг
-                
-                const movementX = event.touches[0].pageX - touchX;
-                touchX = event.touches[0].pageX;
+                    // Подписка на изменения в коллекции игроков
+                    const playersCollection = collection(db, "players");
+                    onSnapshot(playersCollection, (snapshot) => {
+                        snapshot.docChanges().forEach((change) => {
+                            const playerData = change.doc.data();
+                            const playerId = change.doc.id;
 
-                // Вращение камеры только по Y (горизонтальное)
-                camera.rotation.y -= movementX * rotationSpeed;
-                
-                // Если нужно вращение по X, его можно добавить, но это делает игру сложнее на мобильных.
-            }
-        }
+                            if (playerId === localPlayerId) return;
 
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
+                            if (change.type === "added" || change.type === "modified") {
+                                if (players[playerId]) {
+                                    // Обновляем позицию существующего игрока
+                                    players[playerId].position.set(playerData.x, playerData.y, playerData.z);
+                                    players[playerId].rotation.y = playerData.ry;
+                                } else {
+                                    // Добавляем нового игрока
+                                    players[playerId] = createPlayer(playerId);
+                                    players[playerId].position.set(playerData.x, playerData.y, playerData.z);
+                                    players[playerId].rotation.y = playerData.ry;
+                                }
+                            } else if (change.type === "removed") {
+                                if (players[playerId]) {
+                                    scene.remove(players[playerId]);
+                                    delete players[playerId];
+                                }
+                            }
+                        });
+                    });
 
-        function updatePlayerTags() {
-            const tagsContainer = document.getElementById('tags-container');
-            const halfHeight = window.innerHeight / 2;
-            const halfWidth = window.innerWidth / 2;
+                    // Удаление игрока при закрытии вкладки
+                    window.addEventListener('beforeunload', () => {
+                        deleteDoc(doc(db, "players", localPlayerId));
+                    });
 
-            for (const id in otherPlayers) {
-                const player = otherPlayers[id];
-                if (player.tag) {
-                    const tagElement = player.tag.element;
-                    const vector = player.position.clone();
-                    
-                    vector.project(camera); 
-
-                    // Проверка, находится ли игрок перед камерой
-                    if (vector.z > 1 || vector.z < 0.1) { 
-                        tagElement.style.display = 'none';
-                    } else {
-                        tagElement.style.display = 'block';
-                        // Масштабируем и центрируем тег
-                        tagElement.style.left = `${(vector.x * halfWidth) + halfWidth - (tagElement.offsetWidth / 2)}px`;
-                        // Выравниваем выше головы аватара
-                        tagElement.style.top = `${(-vector.y * halfHeight) + halfHeight - 20}px`;
-                        // Добавляем эффект затухания на расстоянии
-                        tagElement.style.opacity = Math.max(0.3, 1 - (vector.z * 0.5)); 
-                    }
+                } else {
+                   signInAnonymously(auth).catch(error => console.error("Ошибка анонимного входа:", error));
                 }
-            }
+            });
         }
         
+        async function updatePlayerPositionInFirestore() {
+            if (!localPlayerId || !localPlayer) return;
+            try {
+                const playerDocRef = doc(db, "players", localPlayerId);
+                await setDoc(playerDocRef, {
+                    x: localPlayer.position.x,
+                    y: localPlayer.position.y,
+                    z: localPlayer.position.z,
+                    ry: localPlayer.rotation.y, // rotation y
+                    timestamp: Date.now()
+                }, { merge: true });
+            } catch (error) {
+                console.error("Ошибка обновления данных в Firestore:", error);
+            }
+        }
+
+        // --- Управление ---
+        function setupControls() {
+            // Определение типа устройства
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            if (isMobile) {
+                document.getElementById('mobile-controls').style.display = 'flex';
+                // Вперед
+                document.getElementById('move-forward').addEventListener('touchstart', () => movement.forward = 1);
+                document.getElementById('move-forward').addEventListener('touchend', () => movement.forward = 0);
+                // Назад
+                document.getElementById('move-backward').addEventListener('touchstart', () => movement.forward = -1);
+                document.getElementById('move-backward').addEventListener('touchend', () => movement.forward = 0);
+                // Влево
+                document.getElementById('turn-left').addEventListener('touchstart', () => movement.turn = 1);
+                document.getElementById('turn-left').addEventListener('touchend', () => movement.turn = 0);
+                // Вправо
+                document.getElementById('turn-right').addEventListener('touchstart', () => movement.turn = -1);
+                document.getElementById('turn-right').addEventListener('touchend', () => movement.turn = 0);
+            } else {
+                // Клавиатура
+                document.addEventListener('keydown', (e) => {
+                    switch(e.code) {
+                        case 'KeyW': case 'ArrowUp': movement.forward = 1; break;
+                        case 'KeyS': case 'ArrowDown': movement.forward = -1; break;
+                        case 'KeyA': case 'ArrowLeft': movement.turn = 1; break;
+                        case 'KeyD': case 'ArrowRight': movement.turn = -1; break;
+                    }
+                });
+                document.addEventListener('keyup', (e) => {
+                    switch(e.code) {
+                        case 'KeyW': case 'ArrowUp': movement.forward = 0; break;
+                        case 'KeyS': case 'ArrowDown': movement.forward = 0; break;
+                        case 'KeyA': case 'ArrowLeft': movement.turn = 0; break;
+                        case 'KeyD': case 'ArrowRight': movement.turn = 0; break;
+                    }
+                });
+            }
+
+            // Кнопка полного экрана
+            document.getElementById('fullscreen-btn').addEventListener('click', () => {
+                if (document.fullscreenElement) {
+                    document.exitFullscreen();
+                } else {
+                    document.documentElement.requestFullscreen().catch(err => {
+                        alert(`Не удалось войти в полноэкранный режим: ${err.message}`);
+                    });
+                }
+            });
+        }
+
         // --- Игровой цикл ---
-        
+        let lastUpdateTime = 0;
         function animate() {
             requestAnimationFrame(animate);
-            
             const delta = clock.getDelta();
-            
-            const isLocked = isMobile || (controls && controls.isLocked); 
 
-            if (isLocked) {
-                
-                let playerObject = isMobile ? camera : controls.getObject();
+            if (localPlayer) {
+                const prevPosition = localPlayer.position.clone();
+                const prevRotation = localPlayer.rotation.y;
 
-                // Проверка нахождения на земле
-                raycaster.ray.origin.copy(playerObject.position);
-                raycaster.ray.origin.y -= 1; // Проверка под ногами
-                const intersections = raycaster.intersectObjects(collisionObjects, true);
-                const onObject = intersections.length > 0;
+                // Поворот
+                localPlayer.rotation.y += movement.turn * turnSpeed * delta;
                 
-                // Замедление движения
-                velocity.x -= velocity.x * 10.0 * delta;
-                velocity.z -= velocity.z * 10.0 * delta;
-                
-                // Гравитация
-                velocity.y -= 9.8 * 10.0 * delta; 
-                
-                // Расчет направления движения
-                direction.z = Number(moveForward) - Number(moveBackward);
-                direction.x = Number(moveRight) - Number(moveLeft);
-                direction.normalize();
-                
-                if (moveForward || moveBackward) velocity.z -= direction.z * 400.0 * delta;
-                if (moveLeft || moveRight) velocity.x -= direction.x * 400.0 * delta;
-                
-                if (onObject) {
-                    velocity.y = Math.max(0, velocity.y);
-                    canJump = true;
+                // Движение
+                if (movement.forward !== 0) {
+                    localPlayer.translateZ(-movement.forward * speed * delta);
                 }
                 
-                // Применение движения
-                playerObject.translateX(velocity.x * delta);
-                playerObject.translateY(velocity.y * delta);
-                playerObject.translateZ(velocity.z * delta);
-                
-                // Ограничение по высоте (не проваливаемся сквозь пол)
-                if (playerObject.position.y < 10) {
-                    velocity.y = 0;
-                    playerObject.position.y = 10;
-                    canJump = true;
-                }
-
-                // --- Обновление Firebase (позиция игрока) ---
-                if (multiplayerReady.value) {
-                    // Обновляем позицию 10 раз в секунду
-                    if (clock.getElapsedTime() % 0.1 < delta) { 
-                        setPlayerPosition(playerObject.position, camera.rotation.y);
+                // Проверка, изменилась ли позиция
+                if (!localPlayer.position.equals(prevPosition) || localPlayer.rotation.y !== prevRotation) {
+                     // Отправляем данные в Firestore не чаще чем раз в 100 мс
+                    const now = Date.now();
+                    if (now - lastUpdateTime > 100) {
+                        updatePlayerPositionInFirestore();
+                        lastUpdateTime = now;
                     }
-                    updatePlayerTags();
                 }
             }
             
             renderer.render(scene, camera);
         }
-        
-        /**
-         * Запускает игру после нажатия на стартовый экран.
-         */
-        async function startGame() {
-            // 1. СРАЗУ ЖЕ запросить полный экран (FIXED: для обхода ошибки Permissions Policy)
-            requestFullscreen(document.documentElement);
-            
-            // 2. Убрать стартовый экран
-            document.getElementById('startScreen').style.display = 'none';
-            
-            // 3. На ПК - захватить курсор (если доступно)
-            if (!isMobile) {
-                if (controls && controls.lock) {
-                    controls.lock();
-                }
-            }
 
-            // 4. Запуск многопользовательского режима (асинхронно, но после фулскрина)
-            const success = await setupFirebase();
-            if (success) {
-                startMultiplayer();
-            }
+        // --- Вспомогательные функции ---
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
         }
         
-        // --- Основная точка входа ---
-        
-        window.onload = function() {
-            init(); 
-            
-            const startScreen = document.getElementById('startScreen');
-            // Привязка обработчика для старта (поддерживает и клик, и тач)
-            startScreen.addEventListener('click', startGame, { once: true });
-            startScreen.addEventListener('touchstart', startGame, { once: true });
-            
-            animate(); 
-        };
-        
+        // --- Запуск ---
+        init();
     </script>
-</head>
-<body>
-    
-    <div id="startScreen">
-        <h1>Лесное Приключение (3D FPS)</h1>
-        <p>Нажмите или коснитесь, чтобы начать и войти в полноэкранный режим</p>
-        <p style="font-size: 1rem; color: #aaa;">Ваш ID для мультиплеера будет отображаться в консоли.</p>
-        <div style="margin-top: 20px; padding: 10px 20px; border: 1px solid #ccc; border-radius: 8px;">
-            <p style="font-size: 1rem; color: #fff; margin: 0;">Управление (ПК): WASD + Мышь / Пробел (прыжок)</p>
-            <p style="font-size: 1rem; color: #fff; margin: 5px 0 0 0;">Управление (Мобильный): Виртуальные кнопки + Тач для обзора</p>
-        </div>
-    </div>
-
-    <div id="tags-container">
-        <!-- Теги других игроков будут добавлены сюда -->
-    </div>
-
-    <!-- Виртуальный геймпад для мобильных устройств -->
-    <div id="mobile-controls">
-        <button id="move-forward" class="control-button">▲</button>
-        <button id="move-left" class="control-button">◀</button>
-        <button id="move-backward" class="control-button">▼</button>
-        <button id="move-right" class="control-button">▶</button>
-        <button id="jump" class="control-button">Прыжок</button>
-    </div>
 </body>
 </html>
+
