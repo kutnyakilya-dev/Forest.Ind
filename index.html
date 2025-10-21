@@ -3,722 +3,380 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мобильная Игра - Интерфейс</title>
-    <!-- Подключение Tailwind CSS -->
+    <title>Мобильная ОС - Симулятор</title>
+    <!-- Подключаем Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Подключение Font Awesome для иконок -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    
-    <!-- ПОДКЛЮЧЕНИЕ THREE.JS и ORBIT CONTROLS ДЛЯ 3D -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-
+    <!-- Конфигурация Tailwind для использования шрифта Inter -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'os-primary': '#1f2937', // Dark Slate
+                        'os-accent': '#3b82f6', // Blue 500
+                        'os-bg': '#0f172a', // Darkest Blue
+                        'os-card': '#1e293b', // Slightly lighter dark
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        /* Добавляем шрифт Inter */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #0d1117; /* Темный фон для игрового мира */
-            color: #e6e6e6;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            padding-top: 5rem; 
-            padding-bottom: 5rem;
-        }
-
-        .nav-button {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 0.5rem 0.25rem;
-            text-align: center;
-            font-weight: 600;
-            font-size: 0.75rem;
-            transition: all 0.2s ease-in-out;
-            cursor: pointer;
-            border-radius: 0.625rem;
-            color: #e6e6e6;
-            background: linear-gradient(145deg, #1f2731, #13181f);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.5);
-            min-width: 80px;
-        }
-        
-        .nav-button:hover, .nav-button.active {
-            background: linear-gradient(145deg, #3f83f8, #1c4d9e);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6), 0 0 15px rgba(66, 153, 225, 0.6);
-            transform: translateY(-2px);
-            color: #ffffff;
-        }
-
-        .nav-button i {
-            font-size: 1.25rem;
-            margin-bottom: 0.25rem;
-        }
-
-        @media (min-width: 640px) {
-            .nav-button {
-                font-size: 0.875rem;
-                padding: 0.75rem 1rem;
-                min-width: 120px;
-            }
-            .nav-button i {
-                font-size: 1.5rem;
-            }
-        }
-
-        .resource-display {
-            display: flex;
-            align-items: center;
-            padding: 0.5rem 0.75rem;
-            border-radius: 0.625rem;
-            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
-            border-width: 1px;
-            font-weight: 700;
-            font-size: 0.875rem;
-            transition: all 0.4s ease-out;
-        }
-        .resource-display i {
-            font-size: 1rem;
-            margin-right: 0.25rem;
-        }
-        @media (min-width: 640px) {
-            .resource-display {
-                font-size: 1rem;
-            }
-            .resource-display i {
-                font-size: 1.25rem;
-            }
-        }
-        
-        .gather-button {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            padding: 2rem 1rem;
-            border-radius: 1rem;
-            font-size: 1.125rem;
-            font-weight: 700;
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.5);
-            transition: all 0.1s ease-in-out;
-            cursor: pointer;
-        }
-        .gather-button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.6);
-        }
-        .gather-button:active {
-            transform: translateY(0);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
-        }
-        .gather-button i {
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
-        }
-
-        #voxel-canvas-container {
-            width: 100%;
-            height: 100%;
+        /* Основной контейнер, имитирующий рамку телефона */
+        #phone-frame {
+            width: 90vw;
+            max-width: 400px;
+            height: 90vh;
+            max-height: 800px;
+            margin: 20px auto;
+            background-color: #000;
+            border-radius: 40px;
+            padding: 8px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             position: relative;
-            cursor: pointer;
-        }
-        
-        #voxel-canvas-container canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
+            overflow: hidden;
+            border: 8px solid #333;
         }
 
-        /* Стиль для уведомлений */
-        #notification-container {
-            position: fixed;
-            top: 5rem; /* Ниже верхней панели */
+        /* Имитация выреза ("челки") */
+        #notch {
+            position: absolute;
+            top: 8px;
             left: 50%;
             transform: translateX(-50%);
-            z-index: 200;
+            width: 120px;
+            height: 25px;
+            background-color: #000;
+            border-radius: 0 0 15px 15px;
+            z-index: 50;
+        }
+
+        /* Экран, где отображается контент */
+        #screen {
+            background-color: #0f172a; /* os-bg */
+            width: 100%;
+            height: calc(100% - 10px); /* Учитываем padding frame */
+            border-radius: 30px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Общие стили для всех экранов/приложений */
+        .os-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.3s ease-out;
+            transform: translateX(100%);
             display: flex;
             flex-direction: column;
-            align-items: center;
-            gap: 0.5rem;
         }
-        .notification {
-            padding: 1rem 1.5rem;
-            border-radius: 0.75rem;
-            color: white;
-            font-weight: 600;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            opacity: 0;
-            transform: translateY(-20px);
-            transition: all 0.3s ease-in-out;
-        }
-        .notification.show {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        .notification.success {
-            background: linear-gradient(145deg, #16a34a, #15803d);
-        }
-         .notification.error {
-            background: linear-gradient(145deg, #dc2626, #b91c1c);
+        
+        #home-screen {
+            transform: translateX(0); /* Домашний экран виден по умолчанию */
+            background: linear-gradient(135deg, #1f2937, #0f172a);
         }
 
+        .active-screen {
+            transform: translateX(0) !important;
+        }
+
+        .app-header {
+            background-color: #1e293b; /* os-card */
+            border-bottom: 1px solid #334155;
+        }
+
+        .app-icon {
+            cursor: pointer;
+            transition: transform 0.1s ease-in-out;
+        }
+        .app-icon:hover {
+            transform: scale(1.05);
+        }
+
+        /* Кнопка "Домой" (Home Bar) */
+        #home-bar {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 5px;
+            background-color: rgba(255, 255, 255, 0.5);
+            border-radius: 3px;
+            z-index: 60;
+            cursor: pointer;
+        }
     </style>
+    <!-- Иконки Phosphor Icons для эстетики -->
+    <script src="https://unpkg.com/@phosphor-icons/web@2.1.1/dist/umd/phosphor.js"></script>
 </head>
-<body>
+<body class="bg-gray-800 font-sans flex items-center justify-center min-h-screen">
 
-    <!-- Контейнер для уведомлений -->
-    <div id="notification-container"></div>
+    <div id="phone-frame">
+        <div id="notch"></div>
+        <div id="screen">
+            
+            <!-- 1. ДОМАШНИЙ ЭКРАН -->
+            <div id="home-screen" class="os-screen active-screen p-4 text-white">
+                
+                <!-- 1.1. СТРОКА СОСТОЯНИЯ -->
+                <div id="status-bar" class="flex justify-between items-center text-xs pt-4 pb-2">
+                    <div id="status-time" class="font-bold text-sm">--:--</div>
+                    <div class="flex items-center space-x-1">
+                        <!-- Иконка Wi-Fi -->
+                        <i class="ph ph-wifi text-base"></i>
+                        <!-- Иконка Батареи -->
+                        <i class="ph ph-battery-full text-base"></i>
+                        <span id="status-battery">100%</span>
+                    </div>
+                </div>
 
-    <!-- Верхняя панель (Информация) -->
-    <header id="top-panel" class="fixed top-0 left-0 w-full p-3 bg-gray-900 shadow-xl shadow-black z-50 border-b border-gray-700/50">
-        <div class="max-w-4xl mx-auto flex justify-start items-center space-x-2 sm:space-x-4 w-full">
-            <div id="money-resource-display" class="resource-display bg-gray-800/70 border-yellow-700/50 text-yellow-400">
-                <i class="fas fa-coins text-yellow-500"></i>
-                <span id="money-display">0.00</span>
-            </div>
-            <div id="wood-resource-display" class="resource-display bg-gray-800/70 border-amber-800/50 text-amber-500">
-                <i class="fas fa-tree text-amber-600"></i>
-                <span id="wood-display">100.00</span>
-            </div>
-            <div id="nails-resource-display" class="resource-display bg-gray-800/70 border-gray-700/50 text-gray-400">
-                <i class="fas fa-screwdriver text-gray-500"></i>
-                <span id="nails-display">0.00</span>
-            </div>
-        </div>
-    </header>
+                <!-- 1.2. Виджет Даты -->
+                <div id="date-widget" class="text-center mt-12 mb-16">
+                    <div id="current-time-large" class="text-7xl font-light">--:--</div>
+                    <div id="current-date" class="text-xl font-medium text-gray-300 mt-2">-- --- ----</div>
+                </div>
 
-    <!-- Основное игровое поле (Контент) -->
-    <div id="game-content" class="flex-grow p-4 text-center max-w-4xl mx-auto w-full">
-        
-        <!-- Вкладка 1: Мастерская -->
-        <div id="master-content" class="content-tab">
-            <h1 class="text-3xl font-bold mb-4 text-blue-400">Мастерская</h1>
-            <p class="text-xl text-gray-400 mb-8">Создавайте новые предметы или объекты.</p>
-            <button id="create-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition duration-150 shadow-lg" onclick="openVoxelEditor()">
-                <i class="fas fa-magic mr-2"></i>
-                Создать
-            </button>
+                <!-- 1.3. СЕТКА ПРИЛОЖЕНИЙ -->
+                <div class="grid grid-cols-4 gap-6 p-4 mt-auto">
+                    
+                    <!-- ИКОНКА: Настройки -->
+                    <div class="app-icon flex flex-col items-center" data-app="settings-app">
+                        <div class="w-14 h-14 bg-gray-500 rounded-xl flex items-center justify-center shadow-lg">
+                            <i class="ph ph-gear-six text-3xl text-white"></i>
+                        </div>
+                        <span class="mt-1 text-xs text-center">Настройки</span>
+                    </div>
+
+                    <!-- ИКОНКА: Браузер -->
+                    <div class="app-icon flex flex-col items-center" data-app="browser-app">
+                        <div class="w-14 h-14 bg-os-accent rounded-xl flex items-center justify-center shadow-lg">
+                            <i class="ph ph-globe text-3xl text-white"></i>
+                        </div>
+                        <span class="mt-1 text-xs text-center">Браузер</span>
+                    </div>
+                    
+                    <!-- ИКОНКА: Сообщения -->
+                    <div class="app-icon flex flex-col items-center">
+                        <div class="w-14 h-14 bg-green-500 rounded-xl flex items-center justify-center shadow-lg">
+                            <i class="ph ph-chats text-3xl text-white"></i>
+                        </div>
+                        <span class="mt-1 text-xs text-center">Сообщения</span>
+                    </div>
+
+                    <!-- ИКОНКА: Камера -->
+                    <div class="app-icon flex flex-col items-center">
+                        <div class="w-14 h-14 bg-gray-700 rounded-xl flex items-center justify-center shadow-lg">
+                            <i class="ph ph-camera text-3xl text-white"></i>
+                        </div>
+                        <span class="mt-1 text-xs text-center">Камера</span>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 2. ЭКРАН ПРИЛОЖЕНИЯ: НАСТРОЙКИ -->
+            <div id="settings-app" class="os-screen text-white">
+                <div class="app-header p-4 text-center">
+                    <h1 class="text-xl font-bold">Настройки</h1>
+                </div>
+                <div class="p-4 space-y-3 flex-grow overflow-y-auto">
+                    <div class="bg-os-card p-3 rounded-xl flex items-center justify-between shadow-md">
+                        <div class="flex items-center space-x-3">
+                            <i class="ph ph-wifi text-os-accent text-xl"></i>
+                            <span>Wi-Fi</span>
+                        </div>
+                        <i class="ph ph-caret-right text-gray-400"></i>
+                    </div>
+                    <div class="bg-os-card p-3 rounded-xl flex items-center justify-between shadow-md">
+                        <div class="flex items-center space-x-3">
+                            <i class="ph ph-bluetooth text-os-accent text-xl"></i>
+                            <span>Bluetooth</span>
+                        </div>
+                        <i class="ph ph-caret-right text-gray-400"></i>
+                    </div>
+                    <div class="bg-os-card p-3 rounded-xl flex items-center justify-between shadow-md">
+                        <div class="flex items-center space-x-3">
+                            <i class="ph ph-bell text-os-accent text-xl"></i>
+                            <span>Уведомления</span>
+                        </div>
+                        <i class="ph ph-caret-right text-gray-400"></i>
+                    </div>
+                    <p class="text-gray-400 pt-4 text-center">Версия ОС: MockOS 1.0 (заглушка)</p>
+                </div>
+            </div>
+
+            <!-- 3. ЭКРАН ПРИЛОЖЕНИЯ: БРАУЗЕР -->
+            <div id="browser-app" class="os-screen text-white">
+                <div class="app-header p-2 flex items-center justify-between">
+                    <i class="ph ph-arrow-left text-xl text-gray-400 cursor-pointer p-2 opacity-0"></i> 
+                    <div class="flex-grow mx-2">
+                        <input type="text" value="https://mockos.local" class="w-full bg-gray-700 text-white text-sm p-1.5 rounded-full border border-gray-600 focus:outline-none focus:border-os-accent" readonly>
+                    </div>
+                    <i class="ph ph-dots-three text-xl text-gray-400 p-2 opacity-0"></i>
+                </div>
+                <div class="p-4 text-center flex-grow flex flex-col items-center justify-center">
+                    <i class="ph ph-smiley text-7xl text-gray-500 mb-4"></i>
+                    <h2 class="text-2xl font-bold">Добро пожаловать в Мок-Браузер!</h2>
+                    <p class="text-gray-400 mt-2">Это симулятор. Реальные сайты здесь не загружаются.</p>
+                </div>
+                <div class="app-header p-3 flex justify-around text-xl text-gray-400 border-t border-gray-700">
+                    <i class="ph ph-caret-left-bold opacity-50"></i>
+                    <i class="ph ph-caret-right-bold opacity-50"></i>
+                    <i class="ph ph-square"></i>
+                    <i class="ph ph-arrow-counter-clockwise"></i>
+                </div>
+            </div>
+
         </div>
 
-        <!-- Вкладка 2: Склад -->
-        <div id="storage-content" class="content-tab hidden">
-            <h1 class="text-3xl font-bold mb-4">Склад</h1>
-            <div id="storage-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                <!-- Карточки предметов будут здесь -->
-            </div>
-        </div>
-        
-        <!-- Вкладка 3: Поставки -->
-        <div id="delivery-content" class="content-tab hidden">
-            <h1 class="text-3xl font-bold mb-4">Поставки</h1>
-            <div id="delivery-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                 <!-- Карточки поставок будут здесь -->
-            </div>
-        </div>
-
-        <!-- Вкладка 4: Ресурсы -->
-        <div id="resources-content" class="content-tab hidden">
-            <h1 class="text-3xl font-bold mb-6 text-blue-400">Добыча Ресурсов</h1>
-            <p class="text-lg text-gray-400 mb-8">Нажмите 3 раза, чтобы добыть 0.09 ресурса.</p>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <button class="gather-button bg-green-700 hover:bg-green-600 text-white" onclick="gatherResource('wood')">
-                    <i class="fas fa-tree"></i>
-                    <span>Дерево</span>
-                    <span class="text-sm mt-1 text-green-200">(+0.09 Дерева)</span>
-                </button>
-                <button class="gather-button bg-gray-600 hover:bg-gray-500 text-white" onclick="gatherResource('stone')">
-                    <i class="fas fa-mountain"></i>
-                    <span>Камень</span>
-                    <span class="text-sm mt-1 text-gray-200">(+0.09 Гвоздей)</span>
-                </button>
-                <button class="gather-button bg-yellow-600 hover:bg-yellow-500 text-white" onclick="gatherResource('gold')">
-                    <i class="fas fa-gem"></i>
-                    <span>Золотая Руда</span>
-                    <span class="text-sm mt-1 text-yellow-200">(+0.09 Денег)</span>
-                </button>
-            </div>
-        </div>
-        
+        <!-- Полоска "Домой" для навигации -->
+        <div id="home-bar"></div>
     </div>
-
-    <!-- Нижняя навигационная панель -->
-    <footer id="nav-panel" class="fixed bottom-0 left-0 w-full p-2 sm:p-4 bg-gray-900 shadow-2xl shadow-black z-50 border-t border-gray-700/50">
-        <div class="max-w-4xl mx-auto flex justify-around space-x-2">
-            <button id="nav-master" class="nav-button active" onclick="setActiveButton(this, 'Мастерская', 'master-content')">
-                <i class="fas fa-hammer"></i>
-                <span>Мастерская</span>
-            </button>
-            <button id="nav-storage" class="nav-button" onclick="setActiveButton(this, 'Склад', 'storage-content')">
-                <i class="fas fa-box-open"></i>
-                <span>Склад</span>
-            </button>
-            <button id="nav-delivery" class="nav-button" onclick="setActiveButton(this, 'Поставки', 'delivery-content')">
-                <i class="fas fa-truck"></i>
-                <span>Поставки</span>
-            </button>
-            <button class="nav-button" onclick="setActiveButton(this, 'Ресурсы', 'resources-content')">
-                <i class="fas fa-gem"></i>
-                <span>Ресурсы</span>
-            </button>
-        </div>
-    </footer>
-    
-    <!-- Модальное окно: Voxel Редактор -->
-    <div id="pixel-editor-modal" class="fixed inset-0 bg-gray-900 z-[100] hidden flex-col">
-        <div class="flex justify-between items-center p-4 bg-gray-800 flex-shrink-0">
-            <div class="flex items-center gap-4">
-                 <button id="editor-create-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-150">
-                    <i class="fas fa-check"></i> Создать
-                </button>
-                <div class="text-lg">Блоков: <span id="block-count">0</span></div>
-            </div>
-            <h2 class="text-2xl font-bold text-blue-400">Voxel-Редактор</h2>
-            <button class="text-gray-400 hover:text-white text-3xl leading-none" onclick="closeVoxelEditor()">&times;</button>
-        </div>
-        <div id="voxel-canvas-container" class="flex-grow w-full overflow-hidden"></div>
-    </div>
-    
-    <!-- Другие модальные окна -->
-    <div id="generic-modal" class="fixed inset-0 bg-black bg-opacity-75 z-[110] hidden items-center justify-center">
-        <div class="bg-gray-800 p-6 rounded-xl shadow-lg w-11/12 max-w-md text-center">
-            <h3 id="modal-title" class="text-2xl font-bold mb-4"></h3>
-            <div id="modal-content" class="mb-6"></div>
-            <div id="modal-actions" class="flex justify-center gap-4"></div>
-        </div>
-    </div>
-
 
     <script>
-        // 1. GLOBAL GAME STATE
-        let gameState = {
-            money: 0,
-            wood: 0, // Начальный запас дерева
-            nails: 0,
-            gatherClicks: { wood: 0, stone: 0, gold: 0 },
-            inventory: [], // Склад
-            deliveries: [] // Поставки
-        };
+        document.addEventListener('DOMContentLoaded', () => {
+            const homeBar = document.getElementById('home-bar');
+            const homeScreen = document.getElementById('home-screen');
+            const appIcons = document.querySelectorAll('.app-icon[data-app]');
+            const screens = document.querySelectorAll('.os-screen');
 
-        // 2. THREE.JS GLOBAL VARIABLES
-        let scene, camera, renderer, controls, animationFrameId, raycaster, mouse;
-        let placedBlocks = [];
-        const CUBE_GEOMETRY = new THREE.BoxGeometry(1, 1, 1);
-        const WOOD_MATERIAL = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
-        const WOOD_COST = 0.23;
-        const MARKUP = 0.50; // Наценка 50%
-        
-        const GRID_SIZE = 16;
-        const GRID_DIMENSION = 16;
-        const GRID_CENTER = GRID_DIMENSION / 2;
-        let rollOverMesh, rollOverMaterial;
+            let currentScreen = 'home-screen';
 
-        // 3. THREE.JS CORE FUNCTIONS
-        function init3D() {
-            const container = document.getElementById('voxel-canvas-container');
-            container.innerHTML = '';
-            placedBlocks = [];
-            updateBlockCount();
+            // --- 1. Логика Часов и Даты ---
+            const statusTime = document.getElementById('status-time');
+            const largeTime = document.getElementById('current-time-large');
+            const currentDate = document.getElementById('current-date');
             
-            const width = container.clientWidth;
-            const height = container.clientHeight;
+            const monthNames = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
 
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x2d3748);
+            function updateTime() {
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const day = now.getDate();
+                const month = monthNames[now.getMonth()];
+                
+                const timeString = `${hours}:${minutes}`;
+                
+                // Обновляем часы в строке состояния и на домашнем экране
+                statusTime.textContent = timeString;
+                largeTime.textContent = timeString;
 
-            camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-            camera.position.set(GRID_DIMENSION, GRID_DIMENSION, GRID_DIMENSION);
-            camera.lookAt(GRID_CENTER, 0, GRID_CENTER);
-
-            renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
-            renderer.setSize(width, height);
-            container.appendChild(renderer.domElement);
-
-            controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.target.set(GRID_CENTER - 0.5, 0, GRID_CENTER - 0.5);
-
-            const ambientLight = new THREE.AmbientLight(0x606060);
-            scene.add(ambientLight);
-            const directionalLight = new THREE.DirectionalLight(0xffffff);
-            directionalLight.position.set(1, 0.75, 0.5).normalize();
-            scene.add(directionalLight);
-
-            raycaster = new THREE.Raycaster();
-            mouse = new THREE.Vector2();
-            
-            // Сетка-пол
-            const gridHelper = new THREE.GridHelper(GRID_DIMENSION, GRID_SIZE);
-            gridHelper.position.set(GRID_CENTER - 0.5, 0, GRID_CENTER - 0.5);
-            scene.add(gridHelper);
-
-            // Прозрачный куб для предпросмотра
-            rollOverMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, opacity: 0.5, transparent: true });
-            rollOverMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), rollOverMaterial);
-            scene.add(rollOverMesh);
-            
-            // "Пол" для кликов
-            const planeGeometry = new THREE.PlaneGeometry(GRID_DIMENSION, GRID_DIMENSION);
-            planeGeometry.rotateX(-Math.PI / 2);
-            const plane = new THREE.Mesh(planeGeometry, new THREE.MeshBasicMaterial({ visible: false }));
-            plane.position.set(GRID_CENTER - 0.5, 0, GRID_CENTER - 0.5);
-            scene.add(plane);
-            placedBlocks.push(plane); // Добавляем пол для рейкастинга
-
-            container.addEventListener('pointermove', onPointerMove);
-            container.addEventListener('pointerdown', onPointerDown);
-            window.addEventListener('resize', onWindowResize);
-            
-            animate();
-        }
-
-        function onPointerMove(event) {
-            const rect = renderer.domElement.getBoundingClientRect();
-            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(placedBlocks, false);
-            if (intersects.length > 0) {
-                const intersect = intersects[0];
-                const voxelPosition = new THREE.Vector3().copy(intersect.point).add(intersect.face.normal);
-                voxelPosition.divideScalar(1).floor().multiplyScalar(1).addScalar(0.5);
-                rollOverMesh.position.copy(voxelPosition);
+                // Обновляем дату
+                currentDate.textContent = `${day} ${month}`;
             }
-        }
-        
-        function onPointerDown(event) {
-            const rect = renderer.domElement.getBoundingClientRect();
-            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(placedBlocks, false);
 
-            if (intersects.length > 0) {
-                const intersect = intersects[0];
-                // Удаление блока (правая кнопка мыши)
-                if (event.button === 2) {
-                    if (intersect.object !== placedBlocks[0]) { // Не удалять пол
-                        scene.remove(intersect.object);
-                        placedBlocks.splice(placedBlocks.indexOf(intersect.object), 1);
-                        gameState.wood += WOOD_COST;
-                        updateResourceDisplay();
-                        updateBlockCount();
+            // Обновляем время сразу и запускаем интервал
+            updateTime();
+            setInterval(updateTime, 1000);
+
+
+            // --- 2. Логика Переключения Экранов ---
+
+            // Функция для открытия приложения
+            function openApp(appId) {
+                // Скрываем текущий экран
+                document.getElementById(currentScreen).classList.remove('active-screen');
+                
+                // Показываем новый экран
+                const newScreen = document.getElementById(appId);
+                if (newScreen) {
+                    newScreen.classList.add('active-screen');
+                    currentScreen = appId;
+                }
+            }
+
+            // Функция для возврата на домашний экран
+            function goHome() {
+                if (currentScreen !== 'home-screen') {
+                    document.getElementById(currentScreen).classList.remove('active-screen');
+                    homeScreen.classList.add('active-screen');
+                    currentScreen = 'home-screen';
+                }
+            }
+
+            // Назначаем обработчики кликов на иконки
+            appIcons.forEach(icon => {
+                icon.addEventListener('click', () => {
+                    const appId = icon.dataset.app;
+                    if (appId) {
+                        openApp(appId);
+                    } else {
+                        // Оповещение для заглушек
+                        showMessage('Приложение в разработке!');
                     }
-                } else { // Добавление блока (левая кнопка)
-                    if (gameState.wood < WOOD_COST) {
-                        showNotification('Недостаточно дерева!', 'error');
-                        return;
-                    }
-                    gameState.wood -= WOOD_COST;
-                    const voxel = new THREE.Mesh(CUBE_GEOMETRY, WOOD_MATERIAL);
-                    const voxelPosition = new THREE.Vector3().copy(intersect.point).add(intersect.face.normal);
-                    voxelPosition.divideScalar(1).floor().multiplyScalar(1).addScalar(0.5);
-                    voxel.position.copy(voxelPosition);
-                    scene.add(voxel);
-                    placedBlocks.push(voxel);
-                    updateResourceDisplay();
-                    updateBlockCount();
-                }
-            }
-        }
-        
-        function updateBlockCount() {
-            document.getElementById('block-count').textContent = placedBlocks.length - 1 > 0 ? placedBlocks.length - 1 : 0;
-        }
-
-        function onWindowResize() {
-            const container = document.getElementById('voxel-canvas-container');
-            const width = container.clientWidth;
-            const height = container.clientHeight;
-            if (camera && renderer) {
-                camera.aspect = width / height;
-                camera.updateProjectionMatrix();
-                renderer.setSize(width, height);
-            }
-        }
-
-        function animate() {
-            animationFrameId = requestAnimationFrame(animate);
-            controls.update();
-            renderer.render(scene, camera);
-        }
-        
-        function dispose3D() {
-            if (animationFrameId) cancelAnimationFrame(animationFrameId);
-            window.removeEventListener('resize', onWindowResize);
-            const container = document.getElementById('voxel-canvas-container');
-            if (renderer && renderer.domElement) {
-                container.innerHTML = '';
-                renderer.dispose();
-            }
-            scene = camera = renderer = controls = animationFrameId = null;
-        }
-
-        function openVoxelEditor() {
-            document.getElementById('pixel-editor-modal').classList.remove('hidden');
-            document.getElementById('pixel-editor-modal').classList.add('flex');
-            setTimeout(init3D, 50); 
-        }
-
-        function closeVoxelEditor() {
-            document.getElementById('pixel-editor-modal').classList.add('hidden');
-            document.getElementById('pixel-editor-modal').classList.remove('flex');
-            dispose3D();
-        }
-
-        // 4. RESOURCE & UI LOGIC
-        function updateResourceDisplay() {
-            document.getElementById('money-display').textContent = gameState.money.toFixed(2);
-            document.getElementById('wood-display').textContent = gameState.wood.toFixed(2);
-            document.getElementById('nails-display').textContent = gameState.nails.toFixed(2);
-        }
-
-        function gatherResource(type) {
-            gameState.gatherClicks[type]++;
-            if (gameState.gatherClicks[type] % 3 === 0) {
-                const amount = 0.09;
-                let targetResourceDisplayId = "";
-                if (type === 'wood') {
-                    gameState.wood += amount;
-                    targetResourceDisplayId = "wood-resource-display";
-                } else if (type === 'stone') {
-                    gameState.nails += amount;
-                    targetResourceDisplayId = "nails-resource-display";
-                } else if (type === 'gold') {
-                    gameState.money += amount;
-                    targetResourceDisplayId = "money-resource-display";
-                }
-                const display = document.getElementById(targetResourceDisplayId);
-                display.classList.add('scale-110', 'bg-green-800/70'); 
-                setTimeout(() => display.classList.remove('scale-110', 'bg-green-800/70'), 400); 
-            }
-            updateResourceDisplay();
-        }
-        
-        function setActiveButton(element, name, contentId) {
-            document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
-            element.classList.add('active');
-
-            document.querySelectorAll('.content-tab').forEach(tab => tab.classList.add('hidden'));
-            const activeTab = document.getElementById(contentId);
-            activeTab.classList.remove('hidden');
-            
-            if (contentId === 'storage-content') renderInventory();
-            if (contentId === 'delivery-content') renderDeliveries();
-
-            if (document.getElementById('pixel-editor-modal').classList.contains('flex')) {
-                closeVoxelEditor();
-            }
-            updateResourceDisplay();
-        }
-
-        // 5. ITEM CREATION, STORAGE, DELIVERY
-        document.getElementById('editor-create-btn').onclick = function() {
-            const blockCount = placedBlocks.length - 1;
-            if (blockCount <= 0) {
-                showNotification('Нужно построить что-нибудь!', 'error');
-                return;
-            }
-            
-            showModal(
-                'Название проекта',
-                `<input type="text" id="item-name-input" class="w-full bg-gray-700 text-white p-2 rounded-md" placeholder="Например: Стул - деревянный">`,
-                `<button id="confirm-creation" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Создать</button>
-                 <button onclick="hideModal()" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Отмена</button>`
-            );
-
-            document.getElementById('confirm-creation').onclick = () => {
-                const itemName = document.getElementById('item-name-input').value;
-                if (!itemName) {
-                    showNotification('Введите название!', 'error');
-                    return;
-                }
-
-                // Снимок 3D объекта
-                const imageDataUrl = renderer.domElement.toDataURL('image/png');
-
-                const newItem = {
-                    id: Date.now(),
-                    name: itemName,
-                    blockCount: blockCount,
-                    cost: blockCount * WOOD_COST,
-                    image: imageDataUrl
-                };
-                gameState.inventory.push(newItem);
-                
-                hideModal();
-                closeVoxelEditor();
-                showNotification(`"${itemName}" добавлен на склад!`, 'success');
-                setActiveButton(document.getElementById('nav-storage'), 'Склад', 'storage-content');
-            };
-        };
-
-        function renderInventory() {
-            const grid = document.getElementById('storage-grid');
-            grid.innerHTML = '';
-            if (gameState.inventory.length === 0) {
-                 grid.innerHTML = `<p class="text-gray-400 col-span-full">Ваш склад пуст. Создайте что-нибудь в мастерской!</p>`;
-                 return;
-            }
-            gameState.inventory.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'bg-gray-800 rounded-lg p-3 flex flex-col items-center shadow-lg';
-                card.innerHTML = `
-                    <img src="${item.image}" class="w-full h-24 object-contain mb-2 rounded-md bg-gray-700">
-                    <h4 class="font-bold text-sm mb-2 truncate w-full">${item.name}</h4>
-                    <div class="flex gap-2 w-full">
-                       <button onclick="showReleaseModal(${item.id})" class="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs py-1 px-2 rounded">Выпустить</button>
-                       <button onclick="deleteItem(${item.id})" class="bg-red-600 hover:bg-red-700 text-white text-xs py-1 px-2 rounded"><i class="fas fa-trash"></i></button>
-                    </div>
-                `;
-                grid.appendChild(card);
+                });
             });
-        }
-        
-        function deleteItem(itemId) {
-            gameState.inventory = gameState.inventory.filter(item => item.id !== itemId);
-            renderInventory();
-        }
 
-        function showReleaseModal(itemId) {
-            const item = gameState.inventory.find(i => i.id === itemId);
-            const pricePerCopy = item.cost * (1 + MARKUP);
+            // Назначаем обработчик клика на Home Bar
+            homeBar.addEventListener('click', goHome);
 
-            showModal(
-                'Выпуск копий',
-                `<div>
-                    <p class="mb-2">Проект: <strong>${item.name}</strong></p>
-                    <p class="mb-4">Стоимость одной копии: ${pricePerCopy.toFixed(2)} <i class="fas fa-coins text-yellow-400"></i></p>
-                    <input type="number" id="copies-input" class="w-full bg-gray-700 text-white p-2 rounded-md" placeholder="Количество копий">
-                 </div>`,
-                `<button id="confirm-release" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Выпустить</button>
-                 <button onclick="hideModal()" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Отмена</button>`
-            );
-            
-            document.getElementById('confirm-release').onclick = () => {
-                const copies = parseInt(document.getElementById('copies-input').value);
-                if (!copies || copies <= 0) {
-                    showNotification('Введите корректное количество!', 'error');
-                    return;
-                }
-                
-                const newDelivery = {
-                    ...item,
-                    totalCopies: copies,
-                    soldCopies: 0,
-                    isPopular: Math.random() < 0.5,
-                    price: pricePerCopy,
-                    intervalId: null
-                };
+            // --- 3. Имитация сообщений (вместо alert()) ---
 
-                gameState.deliveries.push(newDelivery);
-                deleteItem(itemId); // Удаляем из инвентаря
-
-                startSale(newDelivery);
-                hideModal();
-                showNotification(`Проект "${item.name}" отправлен на продажу!`, 'success');
-                setActiveButton(document.getElementById('nav-delivery'), 'Поставки', 'delivery-content');
-            };
-        }
-
-        function startSale(delivery) {
-            const saleSpeed = delivery.isPopular ? 2000 : 5000; // 2с для популярных, 5с для обычных
-            delivery.intervalId = setInterval(() => {
-                delivery.soldCopies++;
-                gameState.money += delivery.price;
-                
-                if (delivery.soldCopies >= delivery.totalCopies) {
-                    clearInterval(delivery.intervalId);
-                    const totalIncome = delivery.price * delivery.totalCopies;
-                    showNotification(`Продажи "${delivery.name}" завершены! Доход: ${totalIncome.toFixed(2)}`, 'success');
-                    
-                    // Возвращаем в инвентарь
-                    const originalItem = { id: delivery.id, name: delivery.name, blockCount: delivery.blockCount, cost: delivery.cost, image: delivery.image };
-                    gameState.inventory.push(originalItem);
-                    gameState.deliveries = gameState.deliveries.filter(d => d.id !== delivery.id);
-                }
-                
-                updateResourceDisplay();
-                if(document.getElementById('delivery-content').style.display !== 'none') {
-                    renderDeliveries();
+            function showMessage(text) {
+                let messageBox = document.getElementById('os-message-box');
+                if (!messageBox) {
+                    messageBox = document.createElement('div');
+                    messageBox.id = 'os-message-box';
+                    messageBox.className = 'fixed inset-0 flex items-center justify-center z-50 pointer-events-none';
+                    document.body.appendChild(messageBox);
                 }
 
-            }, saleSpeed);
-        }
+                const toast = document.createElement('div');
+                toast.textContent = text;
+                toast.className = 'bg-os-card text-white p-4 rounded-xl shadow-2xl transition-opacity duration-300 opacity-0 transform translate-y-4 pointer-events-auto';
+                
+                messageBox.appendChild(toast);
 
-        function renderDeliveries() {
-            const grid = document.getElementById('delivery-grid');
-            grid.innerHTML = '';
-            if (gameState.deliveries.length === 0) {
-                 grid.innerHTML = `<p class="text-gray-400 col-span-full">Активных поставок нет. Выпустите что-нибудь со склада.</p>`;
-                 return;
-            }
-            gameState.deliveries.forEach(d => {
-                const progress = (d.soldCopies / d.totalCopies) * 100;
-                const card = document.createElement('div');
-                card.className = 'bg-gray-800 rounded-lg p-3 flex flex-col shadow-lg';
-                card.innerHTML = `
-                     <div class="flex gap-3 items-start">
-                        <img src="${d.image}" class="w-20 h-20 object-contain rounded-md bg-gray-700 flex-shrink-0">
-                        <div class="flex-grow">
-                             <h4 class="font-bold mb-1 truncate">${d.name} ${d.isPopular ? '<i class="fas fa-star text-yellow-400 text-xs"></i>' : ''}</h4>
-                             <p class="text-sm text-gray-400">Продано: ${d.soldCopies} / ${d.totalCopies}</p>
-                             <div class="w-full bg-gray-700 rounded-full h-2.5 mt-2">
-                                <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${progress}%"></div>
-                             </div>
-                        </div>
-                     </div>
-                `;
-                grid.appendChild(card);
-            });
-        }
-
-
-        // 6. HELPER FUNCTIONS (MODALS, NOTIFICATIONS)
-        function showModal(title, content, actions) {
-            document.getElementById('modal-title').innerHTML = title;
-            document.getElementById('modal-content').innerHTML = content;
-            document.getElementById('modal-actions').innerHTML = actions;
-            document.getElementById('generic-modal').classList.remove('hidden');
-            document.getElementById('generic-modal').classList.add('flex');
-        }
-
-        function hideModal() {
-            document.getElementById('generic-modal').classList.add('hidden');
-            document.getElementById('generic-modal').classList.remove('flex');
-        }
-
-        function showNotification(message, type = 'success') {
-            const container = document.getElementById('notification-container');
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            notification.textContent = message;
-            container.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.classList.add('show');
-            }, 10);
-            
-            setTimeout(() => {
-                notification.classList.remove('show');
+                // Показать
                 setTimeout(() => {
-                    container.removeChild(notification);
-                }, 300);
-            }, 4000);
-        }
+                    toast.classList.remove('opacity-0', 'translate-y-4');
+                    toast.classList.add('opacity-100', 'translate-y-0');
+                }, 10); 
 
-        // INITIALIZATION
-        window.onload = function() {
-            updateResourceDisplay();
-            setActiveButton(document.getElementById('nav-master'), 'Мастерская', 'master-content'); 
-        };
+                // Скрыть
+                setTimeout(() => {
+                    toast.classList.remove('opacity-100', 'translate-y-0');
+                    toast.classList.add('opacity-0', 'translate-y-4');
+                    // Удалить после анимации
+                    setTimeout(() => {
+                        toast.remove();
+                        if (messageBox.children.length === 0) {
+                            messageBox.remove();
+                        }
+                    }, 300);
+                }, 2000);
+            }
 
-        const __app_id = 'default-app-id';
-        const __firebase_config = '{}';
-        const __initial_auth_token = undefined;
+            // Обработчик нажатия на стрелку в Настройках (имитация Back)
+            const backButton = document.querySelector('#settings-app .app-header');
+            if (backButton) {
+                // Добавляем невидимый элемент для кликабельности, чтобы не трогать заголовок
+                const backClickArea = document.createElement('div');
+                backClickArea.className = "absolute left-0 top-0 h-full w-1/4 cursor-pointer flex items-center justify-start pl-4";
+                backClickArea.innerHTML = '<i class="ph ph-caret-left text-2xl text-white"></i>';
+                backClickArea.addEventListener('click', goHome);
+                backButton.style.position = 'relative'; // Устанавливаем относительное позиционирование для родителя
+                backButton.appendChild(backClickArea);
+            }
+            
+            // Назначаем возврат на Home для браузера (иконка "Назад" - она тут невидимая, но кликнем по всей области)
+            const browserHeader = document.querySelector('#browser-app .app-header');
+            if (browserHeader) {
+                const backArea = document.createElement('div');
+                backArea.className = "absolute left-0 top-0 h-full w-1/4 cursor-pointer";
+                backArea.addEventListener('click', goHome);
+                browserHeader.style.position = 'relative';
+                browserHeader.appendChild(backArea);
+            }
+        });
     </script>
 </body>
 </html>
-
