@@ -8,6 +8,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Подключение Font Awesome для иконок -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- ПОДКЛЮЧЕНИЕ THREE.JS и ORBIT CONTROLS ДЛЯ 3D -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
     <style>
         /* Добавляем шрифт Inter */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
@@ -19,12 +24,10 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            /* Измененные отступы, чтобы вместить верхнюю и нижнюю панели */
             padding-top: 5rem; 
             padding-bottom: 5rem;
         }
 
-        /* Стиль для кнопки с градиентом и тенью */
         .nav-button {
             display: flex;
             flex-direction: column;
@@ -33,34 +36,31 @@
             padding: 0.5rem 0.25rem;
             text-align: center;
             font-weight: 600;
-            font-size: 0.75rem; /* Размер для мобильных устройств */
+            font-size: 0.75rem;
             transition: all 0.2s ease-in-out;
             cursor: pointer;
-            border-radius: 0.625rem; /* Больше закругление */
+            border-radius: 0.625rem;
             color: #e6e6e6;
             background: linear-gradient(145deg, #1f2731, #13181f);
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.5);
-            min-width: 80px; /* Минимальная ширина для удобства на моб. */
+            min-width: 80px;
         }
         
-        /* Эффект при наведении/нажатии */
         .nav-button:hover, .nav-button.active {
-            background: linear-gradient(145deg, #3f83f8, #1c4d9e); /* Яркий синий градиент */
+            background: linear-gradient(145deg, #3f83f8, #1c4d9e);
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6), 0 0 15px rgba(66, 153, 225, 0.6);
             transform: translateY(-2px);
             color: #ffffff;
         }
 
-        /* Для иконок */
         .nav-button i {
-            font-size: 1.25rem; /* Размер иконки */
+            font-size: 1.25rem;
             margin-bottom: 0.25rem;
         }
 
-        /* Медиа-запрос для десктопов */
         @media (min-width: 640px) {
             .nav-button {
-                font-size: 0.875rem; /* Чуть больше шрифт на ПК */
+                font-size: 0.875rem;
                 padding: 0.75rem 1rem;
                 min-width: 120px;
             }
@@ -69,7 +69,6 @@
             }
         }
 
-        /* Стиль для отображения ресурсов на верхней панели */
         .resource-display {
             display: flex;
             align-items: center;
@@ -78,11 +77,11 @@
             box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
             border-width: 1px;
             font-weight: 700;
-            font-size: 0.875rem; /* Базовый размер */
-            transition: all 0.4s ease-out; /* Плавный переход для анимации */
+            font-size: 0.875rem;
+            transition: all 0.4s ease-out;
         }
         .resource-display i {
-            font-size: 1rem; /* Размер иконки */
+            font-size: 1rem;
             margin-right: 0.25rem;
         }
         @media (min-width: 640px) {
@@ -94,7 +93,6 @@
             }
         }
         
-        /* Стиль для кнопки добычи ресурса */
         .gather-button {
             display: flex;
             flex-direction: column;
@@ -121,222 +119,606 @@
             font-size: 2.5rem;
             margin-bottom: 0.5rem;
         }
+
+        #voxel-canvas-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        #voxel-canvas-container canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Стиль для уведомлений */
+        #notification-container {
+            position: fixed;
+            top: 5rem; /* Ниже верхней панели */
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .notification {
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s ease-in-out;
+        }
+        .notification.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .notification.success {
+            background: linear-gradient(145deg, #16a34a, #15803d);
+        }
+         .notification.error {
+            background: linear-gradient(145deg, #dc2626, #b91c1c);
+        }
+
     </style>
 </head>
 <body>
 
+    <!-- Контейнер для уведомлений -->
+    <div id="notification-container"></div>
+
     <!-- Верхняя панель (Информация) -->
     <header id="top-panel" class="fixed top-0 left-0 w-full p-3 bg-gray-900 shadow-xl shadow-black z-50 border-b border-gray-700/50">
-        <!-- justify-start для размещения элементов слева -->
         <div class="max-w-4xl mx-auto flex justify-start items-center space-x-2 sm:space-x-4 w-full">
-            
-            <!-- 1. Деньги (Монеты) -->
             <div id="money-resource-display" class="resource-display bg-gray-800/70 border-yellow-700/50 text-yellow-400">
                 <i class="fas fa-coins text-yellow-500"></i>
                 <span id="money-display">0.00</span>
             </div>
-            
-            <!-- 2. Дерево -->
             <div id="wood-resource-display" class="resource-display bg-gray-800/70 border-amber-800/50 text-amber-500">
                 <i class="fas fa-tree text-amber-600"></i>
-                <span id="wood-display">0.00</span>
+                <span id="wood-display">100.00</span>
             </div>
-
-            <!-- 3. Гвозди -->
             <div id="nails-resource-display" class="resource-display bg-gray-800/70 border-gray-700/50 text-gray-400">
                 <i class="fas fa-screwdriver text-gray-500"></i>
                 <span id="nails-display">0.00</span>
             </div>
-            
         </div>
     </header>
 
     <!-- Основное игровое поле (Контент) -->
     <div id="game-content" class="flex-grow p-4 text-center max-w-4xl mx-auto w-full">
         
-        <!-- Вкладка 1: Мастерская (и все остальные, кроме Ресурсов) -->
+        <!-- Вкладка 1: Мастерская -->
         <div id="master-content" class="content-tab">
-            <h1 class="text-3xl font-bold mb-4">Добро пожаловать в игру!</h1>
-            <p class="text-xl text-gray-400">Здесь будет располагаться основной игровой мир.</p>
+            <h1 class="text-3xl font-bold mb-4 text-blue-400">Мастерская</h1>
+            <p class="text-xl text-gray-400 mb-8">Создавайте новые предметы или объекты.</p>
+            <button id="create-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition duration-150 shadow-lg" onclick="openVoxelEditor()">
+                <i class="fas fa-magic mr-2"></i>
+                Создать
+            </button>
         </div>
 
-        <!-- Вкладка 2: Ресурсы -->
+        <!-- Вкладка 2: Склад -->
+        <div id="storage-content" class="content-tab hidden">
+            <h1 class="text-3xl font-bold mb-4">Склад</h1>
+            <div id="storage-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                <!-- Карточки предметов будут здесь -->
+            </div>
+        </div>
+        
+        <!-- Вкладка 3: Поставки -->
+        <div id="delivery-content" class="content-tab hidden">
+            <h1 class="text-3xl font-bold mb-4">Поставки</h1>
+            <div id="delivery-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                 <!-- Карточки поставок будут здесь -->
+            </div>
+        </div>
+
+        <!-- Вкладка 4: Ресурсы -->
         <div id="resources-content" class="content-tab hidden">
             <h1 class="text-3xl font-bold mb-6 text-blue-400">Добыча Ресурсов</h1>
             <p class="text-lg text-gray-400 mb-8">Нажмите 3 раза, чтобы добыть 0.09 ресурса.</p>
-            
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                
-                <!-- Добыча Дерева -->
                 <button class="gather-button bg-green-700 hover:bg-green-600 text-white" onclick="gatherResource('wood')">
                     <i class="fas fa-tree"></i>
                     <span>Дерево</span>
                     <span class="text-sm mt-1 text-green-200">(+0.09 Дерева)</span>
                 </button>
-
-                <!-- Добыча Камня (дает Гвозди) -->
                 <button class="gather-button bg-gray-600 hover:bg-gray-500 text-white" onclick="gatherResource('stone')">
                     <i class="fas fa-mountain"></i>
                     <span>Камень</span>
                     <span class="text-sm mt-1 text-gray-200">(+0.09 Гвоздей)</span>
                 </button>
-
-                <!-- Добыча Золотой Руды (дает Деньги) -->
                 <button class="gather-button bg-yellow-600 hover:bg-yellow-500 text-white" onclick="gatherResource('gold')">
                     <i class="fas fa-gem"></i>
                     <span>Золотая Руда</span>
                     <span class="text-sm mt-1 text-yellow-200">(+0.09 Денег)</span>
                 </button>
-
             </div>
         </div>
         
     </div>
 
-    <!-- Нижняя навигационная панель (Панель управления) -->
+    <!-- Нижняя навигационная панель -->
     <footer id="nav-panel" class="fixed bottom-0 left-0 w-full p-2 sm:p-4 bg-gray-900 shadow-2xl shadow-black z-50 border-t border-gray-700/50">
         <div class="max-w-4xl mx-auto flex justify-around space-x-2">
-            
-            <!-- Кнопка: Мастерская -->
-            <button class="nav-button active" onclick="setActiveButton(this, 'Мастерская')">
+            <button id="nav-master" class="nav-button active" onclick="setActiveButton(this, 'Мастерская', 'master-content')">
                 <i class="fas fa-hammer"></i>
                 <span>Мастерская</span>
             </button>
-
-            <!-- Кнопка: Склад -->
-            <button class="nav-button" onclick="setActiveButton(this, 'Склад')">
+            <button id="nav-storage" class="nav-button" onclick="setActiveButton(this, 'Склад', 'storage-content')">
                 <i class="fas fa-box-open"></i>
                 <span>Склад</span>
             </button>
-
-            <!-- Кнопка: Поставки -->
-            <button class="nav-button" onclick="setActiveButton(this, 'Поставки')">
+            <button id="nav-delivery" class="nav-button" onclick="setActiveButton(this, 'Поставки', 'delivery-content')">
                 <i class="fas fa-truck"></i>
                 <span>Поставки</span>
             </button>
-            
-            <!-- Кнопка: Ресурсы -->
-            <button class="nav-button" onclick="setActiveButton(this, 'Ресурсы')">
+            <button class="nav-button" onclick="setActiveButton(this, 'Ресурсы', 'resources-content')">
                 <i class="fas fa-gem"></i>
                 <span>Ресурсы</span>
             </button>
-            
         </div>
     </footer>
+    
+    <!-- Модальное окно: Voxel Редактор -->
+    <div id="pixel-editor-modal" class="fixed inset-0 bg-gray-900 z-[100] hidden flex-col">
+        <div class="flex justify-between items-center p-4 bg-gray-800 flex-shrink-0">
+            <div class="flex items-center gap-4">
+                 <button id="editor-create-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-150">
+                    <i class="fas fa-check"></i> Создать
+                </button>
+                <div class="text-lg">Блоков: <span id="block-count">0</span></div>
+            </div>
+            <h2 class="text-2xl font-bold text-blue-400">Voxel-Редактор</h2>
+            <button class="text-gray-400 hover:text-white text-3xl leading-none" onclick="closeVoxelEditor()">&times;</button>
+        </div>
+        <div id="voxel-canvas-container" class="flex-grow w-full overflow-hidden"></div>
+    </div>
+    
+    <!-- Другие модальные окна -->
+    <div id="generic-modal" class="fixed inset-0 bg-black bg-opacity-75 z-[110] hidden items-center justify-center">
+        <div class="bg-gray-800 p-6 rounded-xl shadow-lg w-11/12 max-w-md text-center">
+            <h3 id="modal-title" class="text-2xl font-bold mb-4"></h3>
+            <div id="modal-content" class="mb-6"></div>
+            <div id="modal-actions" class="flex justify-center gap-4"></div>
+        </div>
+    </div>
+
 
     <script>
         // 1. GLOBAL GAME STATE
         let gameState = {
             money: 0,
-            wood: 0,
+            wood: 0, // Начальный запас дерева
             nails: 0,
-            // Счётчики для реализации логики 3-х кликов
-            gatherClicks: {
-                wood: 0,
-                stone: 0,
-                gold: 0
-            }
+            gatherClicks: { wood: 0, stone: 0, gold: 0 },
+            inventory: [], // Склад
+            deliveries: [] // Поставки
         };
 
-        // 2. RESOURCE DISPLAY UPDATE
-        // Обновляет отображение ресурсов на верхней панели
+        // 2. THREE.JS GLOBAL VARIABLES
+        let scene, camera, renderer, controls, animationFrameId, raycaster, mouse;
+        let placedBlocks = [];
+        const CUBE_GEOMETRY = new THREE.BoxGeometry(1, 1, 1);
+        const WOOD_MATERIAL = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+        const WOOD_COST = 0.23;
+        const MARKUP = 0.50; // Наценка 50%
+        
+        const GRID_SIZE = 16;
+        const GRID_DIMENSION = 16;
+        const GRID_CENTER = GRID_DIMENSION / 2;
+        let rollOverMesh, rollOverMaterial;
+
+        // 3. THREE.JS CORE FUNCTIONS
+        function init3D() {
+            const container = document.getElementById('voxel-canvas-container');
+            container.innerHTML = '';
+            placedBlocks = [];
+            updateBlockCount();
+            
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x2d3748);
+
+            camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+            camera.position.set(GRID_DIMENSION, GRID_DIMENSION, GRID_DIMENSION);
+            camera.lookAt(GRID_CENTER, 0, GRID_CENTER);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+            renderer.setSize(width, height);
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.target.set(GRID_CENTER - 0.5, 0, GRID_CENTER - 0.5);
+
+            const ambientLight = new THREE.AmbientLight(0x606060);
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff);
+            directionalLight.position.set(1, 0.75, 0.5).normalize();
+            scene.add(directionalLight);
+
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+            
+            // Сетка-пол
+            const gridHelper = new THREE.GridHelper(GRID_DIMENSION, GRID_SIZE);
+            gridHelper.position.set(GRID_CENTER - 0.5, 0, GRID_CENTER - 0.5);
+            scene.add(gridHelper);
+
+            // Прозрачный куб для предпросмотра
+            rollOverMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, opacity: 0.5, transparent: true });
+            rollOverMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), rollOverMaterial);
+            scene.add(rollOverMesh);
+            
+            // "Пол" для кликов
+            const planeGeometry = new THREE.PlaneGeometry(GRID_DIMENSION, GRID_DIMENSION);
+            planeGeometry.rotateX(-Math.PI / 2);
+            const plane = new THREE.Mesh(planeGeometry, new THREE.MeshBasicMaterial({ visible: false }));
+            plane.position.set(GRID_CENTER - 0.5, 0, GRID_CENTER - 0.5);
+            scene.add(plane);
+            placedBlocks.push(plane); // Добавляем пол для рейкастинга
+
+            container.addEventListener('pointermove', onPointerMove);
+            container.addEventListener('pointerdown', onPointerDown);
+            window.addEventListener('resize', onWindowResize);
+            
+            animate();
+        }
+
+        function onPointerMove(event) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(placedBlocks, false);
+            if (intersects.length > 0) {
+                const intersect = intersects[0];
+                const voxelPosition = new THREE.Vector3().copy(intersect.point).add(intersect.face.normal);
+                voxelPosition.divideScalar(1).floor().multiplyScalar(1).addScalar(0.5);
+                rollOverMesh.position.copy(voxelPosition);
+            }
+        }
+        
+        function onPointerDown(event) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(placedBlocks, false);
+
+            if (intersects.length > 0) {
+                const intersect = intersects[0];
+                // Удаление блока (правая кнопка мыши)
+                if (event.button === 2) {
+                    if (intersect.object !== placedBlocks[0]) { // Не удалять пол
+                        scene.remove(intersect.object);
+                        placedBlocks.splice(placedBlocks.indexOf(intersect.object), 1);
+                        gameState.wood += WOOD_COST;
+                        updateResourceDisplay();
+                        updateBlockCount();
+                    }
+                } else { // Добавление блока (левая кнопка)
+                    if (gameState.wood < WOOD_COST) {
+                        showNotification('Недостаточно дерева!', 'error');
+                        return;
+                    }
+                    gameState.wood -= WOOD_COST;
+                    const voxel = new THREE.Mesh(CUBE_GEOMETRY, WOOD_MATERIAL);
+                    const voxelPosition = new THREE.Vector3().copy(intersect.point).add(intersect.face.normal);
+                    voxelPosition.divideScalar(1).floor().multiplyScalar(1).addScalar(0.5);
+                    voxel.position.copy(voxelPosition);
+                    scene.add(voxel);
+                    placedBlocks.push(voxel);
+                    updateResourceDisplay();
+                    updateBlockCount();
+                }
+            }
+        }
+        
+        function updateBlockCount() {
+            document.getElementById('block-count').textContent = placedBlocks.length - 1 > 0 ? placedBlocks.length - 1 : 0;
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('voxel-canvas-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            if (camera && renderer) {
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
+                renderer.setSize(width, height);
+            }
+        }
+
+        function animate() {
+            animationFrameId = requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        function dispose3D() {
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            window.removeEventListener('resize', onWindowResize);
+            const container = document.getElementById('voxel-canvas-container');
+            if (renderer && renderer.domElement) {
+                container.innerHTML = '';
+                renderer.dispose();
+            }
+            scene = camera = renderer = controls = animationFrameId = null;
+        }
+
+        function openVoxelEditor() {
+            document.getElementById('pixel-editor-modal').classList.remove('hidden');
+            document.getElementById('pixel-editor-modal').classList.add('flex');
+            setTimeout(init3D, 50); 
+        }
+
+        function closeVoxelEditor() {
+            document.getElementById('pixel-editor-modal').classList.add('hidden');
+            document.getElementById('pixel-editor-modal').classList.remove('flex');
+            dispose3D();
+        }
+
+        // 4. RESOURCE & UI LOGIC
         function updateResourceDisplay() {
-            // Используем toFixed(2) для красивого отображения дробных чисел
             document.getElementById('money-display').textContent = gameState.money.toFixed(2);
             document.getElementById('wood-display').textContent = gameState.wood.toFixed(2);
             document.getElementById('nails-display').textContent = gameState.nails.toFixed(2);
         }
 
-        // 3. RESOURCE GATHERING LOGIC
-        // Обрабатывает клики по кнопкам добычи
         function gatherResource(type) {
             gameState.gatherClicks[type]++;
-            const clickCount = gameState.gatherClicks[type];
-            
-            // Удалена переменная statusMessage и все, что с ней связано
-
-            if (clickCount % 3 === 0) {
-                // Успешная добыча (каждые 3 клика)
+            if (gameState.gatherClicks[type] % 3 === 0) {
                 const amount = 0.09;
                 let targetResourceDisplayId = "";
-                
-                // Проверяем, какой ресурс добыт
                 if (type === 'wood') {
-                    // Используем Math.round для предотвращения ошибок с плавающей точкой
-                    gameState.wood = Math.round((gameState.wood + amount) * 100) / 100;
-                    targetResourceDisplayId = "wood-resource-display"; // Изменен ID для доступа к общему блоку
+                    gameState.wood += amount;
+                    targetResourceDisplayId = "wood-resource-display";
                 } else if (type === 'stone') {
-                    // Камень добывает Гвозди, как было запрошено
-                    gameState.nails = Math.round((gameState.nails + amount) * 100) / 100;
-                    targetResourceDisplayId = "nails-resource-display"; // Изменен ID для доступа к общему блоку
+                    gameState.nails += amount;
+                    targetResourceDisplayId = "nails-resource-display";
                 } else if (type === 'gold') {
-                    // Золотая руда добывает Деньги
-                    gameState.money = Math.round((gameState.money + amount) * 100) / 100;
-                    targetResourceDisplayId = "money-resource-display"; // Изменен ID для доступа к общему блоку
+                    gameState.money += amount;
+                    targetResourceDisplayId = "money-resource-display";
                 }
-                
-                // Анимация на панели ресурсов (Изменено: удалена обводка, добавлен более плавный эффект)
                 const display = document.getElementById(targetResourceDisplayId);
-                // Добавляем классы для плавного пульса/увеличения
                 display.classList.add('scale-110', 'bg-green-800/70'); 
-                
-                // Убираем классы после 400ms для плавного возврата
-                setTimeout(() => {
-                    display.classList.remove('scale-110', 'bg-green-800/70');
-                }, 400); 
-
-            } else {
-                // Обычный клик (Теперь ничего не происходит в окне статуса)
+                setTimeout(() => display.classList.remove('scale-110', 'bg-green-800/70'), 400); 
             }
-            
             updateResourceDisplay();
         }
-
-        // 4. CONTENT SWITCHING
-        // Функция для симуляции активации кнопки и смены контента
-        function setActiveButton(element, name) {
-            // Удаляем класс 'active' со всех кнопок
-            const buttons = document.querySelectorAll('.nav-button');
-            buttons.forEach(btn => btn.classList.remove('active'));
-
-            // Добавляем класс 'active' к нажатой кнопке
+        
+        function setActiveButton(element, name, contentId) {
+            document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
             element.classList.add('active');
 
-            // Скрываем все контенты
             document.querySelectorAll('.content-tab').forEach(tab => tab.classList.add('hidden'));
+            const activeTab = document.getElementById(contentId);
+            activeTab.classList.remove('hidden');
             
-            // Показываем нужный контент
-            if (name === 'Ресурсы') {
-                document.getElementById('resources-content').classList.remove('hidden');
-            } else {
-                // Если выбран другой пункт (Мастерская, Склад, Поставки)
-                document.getElementById('master-content').classList.remove('hidden');
+            if (contentId === 'storage-content') renderInventory();
+            if (contentId === 'delivery-content') renderDeliveries();
+
+            if (document.getElementById('pixel-editor-modal').classList.contains('flex')) {
+                closeVoxelEditor();
             }
-            
             updateResourceDisplay();
         }
 
-        // Установка начального состояния при загрузке
-        window.onload = function() {
-            // Чтобы анимация работала, блокам ресурсов нужны уникальные ID (хотя они уже в разметке, это для надежности)
-            document.getElementById('money-display').parentNode.id = 'money-resource-display';
-            document.getElementById('wood-display').parentNode.id = 'wood-resource-display';
-            document.getElementById('nails-display').parentNode.id = 'nails-resource-display';
-            
-            // Инициализация отображения ресурсов
-            updateResourceDisplay(); 
-            
-            // Имитация клика по "Мастерской" для установки начального активного состояния
-            const initialActive = document.querySelector('.nav-button.active');
-            if (initialActive) {
-                setActiveButton(initialActive, 'Мастерская'); 
+        // 5. ITEM CREATION, STORAGE, DELIVERY
+        document.getElementById('editor-create-btn').onclick = function() {
+            const blockCount = placedBlocks.length - 1;
+            if (blockCount <= 0) {
+                showNotification('Нужно построить что-нибудь!', 'error');
+                return;
             }
+            
+            showModal(
+                'Название проекта',
+                `<input type="text" id="item-name-input" class="w-full bg-gray-700 text-white p-2 rounded-md" placeholder="Например: Стул - деревянный">`,
+                `<button id="confirm-creation" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Создать</button>
+                 <button onclick="hideModal()" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Отмена</button>`
+            );
+
+            document.getElementById('confirm-creation').onclick = () => {
+                const itemName = document.getElementById('item-name-input').value;
+                if (!itemName) {
+                    showNotification('Введите название!', 'error');
+                    return;
+                }
+
+                // Снимок 3D объекта
+                const imageDataUrl = renderer.domElement.toDataURL('image/png');
+
+                const newItem = {
+                    id: Date.now(),
+                    name: itemName,
+                    blockCount: blockCount,
+                    cost: blockCount * WOOD_COST,
+                    image: imageDataUrl
+                };
+                gameState.inventory.push(newItem);
+                
+                hideModal();
+                closeVoxelEditor();
+                showNotification(`"${itemName}" добавлен на склад!`, 'success');
+                setActiveButton(document.getElementById('nav-storage'), 'Склад', 'storage-content');
+            };
         };
 
-        // Заглушки для предотвращения ошибок
+        function renderInventory() {
+            const grid = document.getElementById('storage-grid');
+            grid.innerHTML = '';
+            if (gameState.inventory.length === 0) {
+                 grid.innerHTML = `<p class="text-gray-400 col-span-full">Ваш склад пуст. Создайте что-нибудь в мастерской!</p>`;
+                 return;
+            }
+            gameState.inventory.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'bg-gray-800 rounded-lg p-3 flex flex-col items-center shadow-lg';
+                card.innerHTML = `
+                    <img src="${item.image}" class="w-full h-24 object-contain mb-2 rounded-md bg-gray-700">
+                    <h4 class="font-bold text-sm mb-2 truncate w-full">${item.name}</h4>
+                    <div class="flex gap-2 w-full">
+                       <button onclick="showReleaseModal(${item.id})" class="flex-1 bg-green-600 hover:bg-green-700 text-white text-xs py-1 px-2 rounded">Выпустить</button>
+                       <button onclick="deleteItem(${item.id})" class="bg-red-600 hover:bg-red-700 text-white text-xs py-1 px-2 rounded"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+        
+        function deleteItem(itemId) {
+            gameState.inventory = gameState.inventory.filter(item => item.id !== itemId);
+            renderInventory();
+        }
+
+        function showReleaseModal(itemId) {
+            const item = gameState.inventory.find(i => i.id === itemId);
+            const pricePerCopy = item.cost * (1 + MARKUP);
+
+            showModal(
+                'Выпуск копий',
+                `<div>
+                    <p class="mb-2">Проект: <strong>${item.name}</strong></p>
+                    <p class="mb-4">Стоимость одной копии: ${pricePerCopy.toFixed(2)} <i class="fas fa-coins text-yellow-400"></i></p>
+                    <input type="number" id="copies-input" class="w-full bg-gray-700 text-white p-2 rounded-md" placeholder="Количество копий">
+                 </div>`,
+                `<button id="confirm-release" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Выпустить</button>
+                 <button onclick="hideModal()" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Отмена</button>`
+            );
+            
+            document.getElementById('confirm-release').onclick = () => {
+                const copies = parseInt(document.getElementById('copies-input').value);
+                if (!copies || copies <= 0) {
+                    showNotification('Введите корректное количество!', 'error');
+                    return;
+                }
+                
+                const newDelivery = {
+                    ...item,
+                    totalCopies: copies,
+                    soldCopies: 0,
+                    isPopular: Math.random() < 0.5,
+                    price: pricePerCopy,
+                    intervalId: null
+                };
+
+                gameState.deliveries.push(newDelivery);
+                deleteItem(itemId); // Удаляем из инвентаря
+
+                startSale(newDelivery);
+                hideModal();
+                showNotification(`Проект "${item.name}" отправлен на продажу!`, 'success');
+                setActiveButton(document.getElementById('nav-delivery'), 'Поставки', 'delivery-content');
+            };
+        }
+
+        function startSale(delivery) {
+            const saleSpeed = delivery.isPopular ? 2000 : 5000; // 2с для популярных, 5с для обычных
+            delivery.intervalId = setInterval(() => {
+                delivery.soldCopies++;
+                gameState.money += delivery.price;
+                
+                if (delivery.soldCopies >= delivery.totalCopies) {
+                    clearInterval(delivery.intervalId);
+                    const totalIncome = delivery.price * delivery.totalCopies;
+                    showNotification(`Продажи "${delivery.name}" завершены! Доход: ${totalIncome.toFixed(2)}`, 'success');
+                    
+                    // Возвращаем в инвентарь
+                    const originalItem = { id: delivery.id, name: delivery.name, blockCount: delivery.blockCount, cost: delivery.cost, image: delivery.image };
+                    gameState.inventory.push(originalItem);
+                    gameState.deliveries = gameState.deliveries.filter(d => d.id !== delivery.id);
+                }
+                
+                updateResourceDisplay();
+                if(document.getElementById('delivery-content').style.display !== 'none') {
+                    renderDeliveries();
+                }
+
+            }, saleSpeed);
+        }
+
+        function renderDeliveries() {
+            const grid = document.getElementById('delivery-grid');
+            grid.innerHTML = '';
+            if (gameState.deliveries.length === 0) {
+                 grid.innerHTML = `<p class="text-gray-400 col-span-full">Активных поставок нет. Выпустите что-нибудь со склада.</p>`;
+                 return;
+            }
+            gameState.deliveries.forEach(d => {
+                const progress = (d.soldCopies / d.totalCopies) * 100;
+                const card = document.createElement('div');
+                card.className = 'bg-gray-800 rounded-lg p-3 flex flex-col shadow-lg';
+                card.innerHTML = `
+                     <div class="flex gap-3 items-start">
+                        <img src="${d.image}" class="w-20 h-20 object-contain rounded-md bg-gray-700 flex-shrink-0">
+                        <div class="flex-grow">
+                             <h4 class="font-bold mb-1 truncate">${d.name} ${d.isPopular ? '<i class="fas fa-star text-yellow-400 text-xs"></i>' : ''}</h4>
+                             <p class="text-sm text-gray-400">Продано: ${d.soldCopies} / ${d.totalCopies}</p>
+                             <div class="w-full bg-gray-700 rounded-full h-2.5 mt-2">
+                                <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${progress}%"></div>
+                             </div>
+                        </div>
+                     </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+
+        // 6. HELPER FUNCTIONS (MODALS, NOTIFICATIONS)
+        function showModal(title, content, actions) {
+            document.getElementById('modal-title').innerHTML = title;
+            document.getElementById('modal-content').innerHTML = content;
+            document.getElementById('modal-actions').innerHTML = actions;
+            document.getElementById('generic-modal').classList.remove('hidden');
+            document.getElementById('generic-modal').classList.add('flex');
+        }
+
+        function hideModal() {
+            document.getElementById('generic-modal').classList.add('hidden');
+            document.getElementById('generic-modal').classList.remove('flex');
+        }
+
+        function showNotification(message, type = 'success') {
+            const container = document.getElementById('notification-container');
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            container.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 10);
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    container.removeChild(notification);
+                }, 300);
+            }, 4000);
+        }
+
+        // INITIALIZATION
+        window.onload = function() {
+            updateResourceDisplay();
+            setActiveButton(document.getElementById('nav-master'), 'Мастерская', 'master-content'); 
+        };
+
         const __app_id = 'default-app-id';
         const __firebase_config = '{}';
         const __initial_auth_token = undefined;
     </script>
 </body>
 </html>
+
