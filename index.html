@@ -2,400 +2,329 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>3D Multiplayer World</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Лес от Первого Лица</title>
+    <!-- Подключаем Three.js и PointerLockControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/js/controls/PointerLockControls.js"></script>
     <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: #000;
-            color: white;
-        }
-        canvas {
-            display: block;
-        }
-        #ui-container {
+        /* Стиль для полноэкранного канваса и центрирования */
+        body { margin: 0; overflow: hidden; background-color: #282c34; font-family: 'Inter', sans-serif; }
+        canvas { display: block; }
+
+        /* Стиль для информационного блока */
+        #info {
             position: absolute;
-            top: 10px;
-            left: 10px;
-            z-index: 10;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        #fullscreen-btn {
-            padding: 10px 15px;
-            background-color: rgba(0, 0, 0, 0.5);
-            color: white;
-            border: 1px solid white;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        #player-id-display {
-            padding: 10px;
-            background-color: rgba(0,0,0,0.5);
-            border-radius: 8px;
-            font-size: 12px;
-            word-break: break-all;
-        }
-        /* Стили для мобильного управления */
-        #mobile-controls {
-            position: absolute;
-            bottom: 20px;
+            top: 0;
+            left: 0;
             width: 100%;
-            display: none; /* Скрыто по умолчанию, будет показано через JS на мобильных */
-            justify-content: space-between;
-            align-items: flex-end;
-            padding: 0 20px;
-            box-sizing: border-box;
-            z-index: 100;
-            user-select: none; /* Отключить выделение текста при нажатии */
+            padding: 10px;
+            text-align: center;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: #ffffff;
+            font-size: 14px;
+            z-index: 10;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            border-radius: 0 0 10px 10px;
         }
-        .control-cluster {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-        }
-        .control-btn {
-            width: 70px;
-            height: 70px;
-            background-color: rgba(255, 255, 255, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.5);
-            border-radius: 50%;
+        #blocker {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9); /* Сделаем темнее, чтобы было заметнее */
             display: flex;
             justify-content: center;
             align-items: center;
+            text-align: center;
+            flex-direction: column;
+            color: white;
+            z-index: 100;
+            cursor: pointer;
+        }
+        #instructions {
             font-size: 32px;
-            color: rgba(255, 255, 255, 0.8);
+            font-weight: 800;
+            padding: 30px 40px;
+            border-radius: 12px;
+            background-color: rgba(0, 80, 0, 0.8); /* Более насыщенный цвет */
+            box-shadow: 0 0 25px rgba(0, 255, 0, 0.7);
+            border: 3px solid limegreen;
+            transition: opacity 0.5s;
+            text-transform: uppercase;
+        }
+        #instructions p {
+            margin: 15px 0;
+            line-height: 1.4;
+        }
+
+        /* Крестик прицела */
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 8px;
+            height: 8px;
+            margin-left: -4px;
+            margin-top: -4px;
+            border-radius: 50%;
+            background: rgba(255, 0, 0, 0.8);
+            box-shadow: 0 0 5px rgba(255, 0, 0, 0.9);
+            z-index: 99;
+            pointer-events: none; /* Игнорировать клики на крестике */
+            display: none; /* Скрыт, пока курсор не заблокирован */
         }
     </style>
 </head>
 <body>
-    <div id="ui-container">
-        <button id="fullscreen-btn">Во весь экран</button>
-        <div id="player-id-display">Загрузка...</div>
-    </div>
-    
-    <!-- Элементы управления для мобильных устройств -->
-    <div id="mobile-controls">
-        <div class="control-cluster">
-            <div id="turn-left" class="control-btn">⟲</div>
-            <div id="turn-right" class="control-btn">⟳</div>
-        </div>
-        <div class="control-cluster">
-            <div id="move-forward" class="control-btn">▲</div>
-            <div id="move-backward" class="control-btn">▼</div>
+
+    <!-- Блокирующий элемент для захвата курсора -->
+    <div id="blocker">
+        <div id="instructions">
+            <p>Нажмите, чтобы начать</p>
+            <p style="font-size: 20px; font-weight: normal;">
+                (WASD: Движение &middot; Мышь: Обзор)
+            </p>
+            <p style="font-size: 16px; font-weight: normal; color: #ccc;">
+                *Браузер может запросить разрешение на блокировку курсора.
+            </p>
         </div>
     </div>
 
-    <canvas id="gameCanvas"></canvas>
+    <!-- Крестик прицела -->
+    <div id="crosshair"></div>
 
-    <script type="module">
-        // --- Библиотеки ---
-        import * as THREE from 'https://cdn.skypack.dev/three@0.132.2';
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, setDoc, doc, collection, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    <!-- Информационный блок -->
+    <div id="info">3D Лес: Прогулка от Первого Лица. Нажмите на экран, чтобы управлять!</div>
 
-        // --- Конфигурация Firebase ---
-        // Используем предоставленную конфигурацию
-        const firebaseConfig = {
-            apiKey: "AIzaSyARZvFpMMn5t8pg5gb2bWA6OrZC1L8DBSA",
-            authDomain: "my-pet-c8684.firebaseapp.com",
-            projectId: "my-pet-c8684",
-            storageBucket: "my-pet-c8684.firebasestorage.app",
-            messagingSenderId: "102742166711",
-            appId: "1:102742166711:web:aa6b251fd6d6c993c71132"
-        };
+    <script>
+        let camera, scene, renderer, controls;
+        let prevTime = performance.now();
         
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
+        // Переменные для управления движением
+        const velocity = new THREE.Vector3();
+        let moveForward = false;
+        let moveBackward = false;
+        let moveLeft = false;
+        let moveRight = false;
+        const playerSpeed = 400.0;
+        const playerHeight = 50; // Высота игрока над землей
 
-        // --- Глобальные переменные ---
-        let scene, camera, renderer, clock;
-        let localPlayer, localPlayerId;
-        const players = {}; // Хранилище для объектов других игроков
-        const movement = { forward: 0, turn: 0 };
-        const speed = 5;
-        const turnSpeed = Math.PI / 2;
-        const MAP_SIZE = 100;
-        
-        // --- Инициализация ---
+        // --- Инициализация сцены ---
         function init() {
+            // Камера
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
+            camera.position.y = playerHeight;
+
             // Сцена
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x87ceeb);
-            scene.fog = new THREE.Fog(0x87ceeb, 0, MAP_SIZE * 0.75);
-            clock = new THREE.Clock();
+            scene.background = new THREE.Color(0x87CEEB); // Голубое небо
+            scene.fog = new THREE.Fog(0x87CEEB, 0, 3500); // Туман для имитации горизонта
 
-            // Камера
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 10, 20);
-            camera.lookAt(0, 0, 0);
+            // Свет
+            const light = new THREE.DirectionalLight(0xffffff, 1.0);
+            light.position.set(1, 1, 1).normalize();
+            scene.add(light);
+            scene.add(new THREE.AmbientLight(0x404040, 2.0)); // Мягкий рассеянный свет
 
-            // Рендерер
-            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gameCanvas'), antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
-            renderer.shadowMap.enabled = true;
+            // --- Управление от первого лица ---
+            // Проверка, что PointerLockControls загружен
+            if (typeof THREE.PointerLockControls === 'undefined') {
+                console.error("THREE.PointerLockControls не загружен. Проверьте подключение скрипта.");
+                // Обновляем инструкцию для пользователя, чтобы подсказать, что делать
+                document.getElementById('instructions').style.backgroundColor = 'rgba(139, 0, 0, 0.8)';
+                document.getElementById('instructions').style.boxShadow = '0 0 25px rgba(255, 0, 0, 0.7)';
+                document.getElementById('instructions').style.borderColor = 'red';
+                document.getElementById('instructions').innerHTML = "<p>ОШИБКА: КОНТРОЛЛЕР НЕ ЗАГРУЖЕН.</p><p style='font-size: 16px; color: #ffcccc;'>Пожалуйста, обновите страницу (Ctrl+R или F5). Если ошибка повторится, возможно, проблема с загрузкой внешней библиотеки Three.js.</p>";
+                return; // Прекращаем инициализацию
+            }
 
-            // Освещение
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-            scene.add(ambientLight);
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            dirLight.position.set(-30, 50, -30);
-            dirLight.castShadow = true;
-            dirLight.shadow.mapSize.width = 2048;
-            dirLight.shadow.mapSize.height = 2048;
-            scene.add(dirLight);
+            controls = new THREE.PointerLockControls(camera, document.body);
 
-            // Создание карты
-            createMap();
-            
-            // Настройка управления и событий
-            setupControls();
-            window.addEventListener('resize', onWindowResize);
-            
-            // Запуск Firebase
-            setupFirebase();
+            const blocker = document.getElementById('blocker');
+            const instructions = document.getElementById('instructions');
+            const crosshair = document.getElementById('crosshair');
 
-            // Запуск игрового цикла
-            animate();
-        }
+            // Обработчик для блокировки курсора
+            instructions.addEventListener('click', function () {
+                controls.lock();
+            });
 
-        // --- Создание игрового мира ---
-        function createMap() {
-            // Земля
-            const groundGeometry = new THREE.PlaneGeometry(MAP_SIZE, MAP_SIZE);
-            const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x228b22 });
+            // События блокировки/разблокировки курсора
+            controls.addEventListener('lock', function () {
+                blocker.style.display = 'none';
+                crosshair.style.display = 'block'; // Показываем прицел
+            });
+
+            controls.addEventListener('unlock', function () {
+                blocker.style.display = 'flex';
+                crosshair.style.display = 'none'; // Скрываем прицел
+            });
+
+            scene.add(controls.getObject());
+
+            // --- Обработчики клавиатуры ---
+            const onKeyDown = function (event) {
+                if (!controls.isLocked) return;
+                switch (event.code) {
+                    case 'KeyW':
+                    case 'ArrowUp':
+                        moveForward = true;
+                        break;
+                    case 'KeyA':
+                    case 'ArrowLeft':
+                        moveLeft = true;
+                        break;
+                    case 'KeyS':
+                    case 'ArrowDown':
+                        moveBackward = true;
+                        break;
+                    case 'KeyD':
+                    case 'ArrowRight':
+                        moveRight = true;
+                        break;
+                }
+            };
+
+            const onKeyUp = function (event) {
+                switch (event.code) {
+                    case 'KeyW':
+                    case 'ArrowUp':
+                        moveForward = false;
+                        break;
+                    case 'KeyA':
+                    case 'ArrowLeft':
+                        moveLeft = false;
+                        break;
+                    case 'KeyS':
+                    case 'ArrowDown':
+                        moveBackward = false;
+                        break;
+                    case 'KeyD':
+                    case 'ArrowRight':
+                        moveRight = false;
+                        break;
+                }
+            };
+
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('keyup', onKeyUp);
+
+            // --- Создание Земли (Плоскости) ---
+            const groundGeometry = new THREE.PlaneGeometry(10000, 10000, 1, 1);
+            // Используем MeshLambertMaterial для реакции на свет
+            const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x4F7942 }); // Темно-зеленый
             const ground = new THREE.Mesh(groundGeometry, groundMaterial);
             ground.rotation.x = -Math.PI / 2;
-            ground.receiveShadow = true;
+            ground.position.y = 0;
             scene.add(ground);
 
-            // Деревья
-            const treeCount = 150;
+            // --- Функция для создания одного простого дерева ---
+            function createTree(x, z) {
+                // Ствол (коричневый цилиндр)
+                const trunkGeometry = new THREE.CylinderGeometry(5, 8, 50, 8);
+                const trunkMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+                const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+
+                // Крона (зеленый конус)
+                const leavesGeometry = new THREE.ConeGeometry(30, 80, 8);
+                const leavesMaterial = new THREE.MeshLambertMaterial({ color: 0x006400 });
+                const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
+                
+                // Группа для удобного позиционирования
+                const treeGroup = new THREE.Group();
+                treeGroup.add(trunk);
+                treeGroup.add(leaves);
+
+                // Установка позиции ствола и кроны
+                trunk.position.set(0, 25, 0); // Половина высоты ствола над землей (y=0)
+                leaves.position.set(0, 25 + 40, 0); // Верх ствола + половина высоты кроны
+
+                // Перемещение всей группы
+                treeGroup.position.set(x, 0, z);
+
+                // Немного случайного масштаба для разнообразия
+                const scale = 0.8 + Math.random() * 0.4;
+                treeGroup.scale.set(scale, scale, scale);
+
+                return treeGroup;
+            }
+
+            // --- Генерация леса (200 деревьев) ---
+            const treeCount = 200;
+            const forestSize = 3000; // Радиус распространения деревьев
+
             for (let i = 0; i < treeCount; i++) {
-                createTree(
-                    (Math.random() - 0.5) * MAP_SIZE,
-                    (Math.random() - 0.5) * MAP_SIZE
-                );
-            }
-        }
-
-        function createTree(x, z) {
-            const trunkHeight = Math.random() * 4 + 2;
-            const trunkGeo = new THREE.CylinderGeometry(0.3, 0.4, trunkHeight, 8);
-            const trunkMat = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
-            const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-            trunk.position.set(x, trunkHeight / 2, z);
-            trunk.castShadow = true;
-            
-            const leavesHeight = Math.random() * 3 + 3;
-            const leavesGeo = new THREE.ConeGeometry(2, leavesHeight, 8);
-            const leavesMat = new THREE.MeshLambertMaterial({ color: 0x006400 });
-            const leaves = new THREE.Mesh(leavesGeo, leavesMat);
-            leaves.position.set(x, trunkHeight + leavesHeight / 2, z);
-            leaves.castShadow = true;
-
-            scene.add(trunk);
-            scene.add(leaves);
-        }
-
-        // --- Игрок ---
-        function createPlayer(id, isLocal = false) {
-            const playerGeo = new THREE.CapsuleGeometry(0.5, 1, 4, 8);
-            // Генерируем цвет на основе ID для консистентности
-            const color = new THREE.Color('#' + id.substring(0, 6)); 
-            const playerMat = new THREE.MeshStandardMaterial({ color });
-            const playerMesh = new THREE.Mesh(playerGeo, playerMat);
-            playerMesh.castShadow = true;
-            playerMesh.position.y = 1;
-            
-            const playerContainer = new THREE.Object3D();
-            playerContainer.add(playerMesh);
-
-            if (isLocal) {
-                // Размещаем локального игрока в случайном месте
-                playerContainer.position.set(
-                    (Math.random() - 0.5) * 20,
-                    0,
-                    (Math.random() - 0.5) * 20
-                );
-                // Добавляем камеру к контейнеру игрока
-                playerContainer.add(camera);
-                camera.position.set(0, 5, 8); // Позиция камеры относительно игрока
-                // Заставляем камеру смотреть на центр игрока (в локальных координатах контейнера)
-                camera.lookAt(0, 1, 0);
-            }
-            
-            scene.add(playerContainer);
-            return playerContainer;
-        }
-
-        // --- Firebase ---
-        function setupFirebase() {
-            onAuthStateChanged(auth, user => {
-                if (user) {
-                    localPlayerId = user.uid;
-                    document.getElementById('player-id-display').textContent = `Ваш ID: ${localPlayerId}`;
-
-                    localPlayer = createPlayer(localPlayerId, true);
-                    updatePlayerPositionInFirestore();
-
-                    // Подписка на изменения в коллекции игроков
-                    const playersCollection = collection(db, "players");
-                    onSnapshot(playersCollection, (snapshot) => {
-                        snapshot.docChanges().forEach((change) => {
-                            const playerData = change.doc.data();
-                            const playerId = change.doc.id;
-
-                            if (playerId === localPlayerId) return;
-
-                            if (change.type === "added" || change.type === "modified") {
-                                if (players[playerId]) {
-                                    // Обновляем позицию существующего игрока
-                                    players[playerId].position.set(playerData.x, playerData.y, playerData.z);
-                                    players[playerId].rotation.y = playerData.ry;
-                                } else {
-                                    // Добавляем нового игрока
-                                    players[playerId] = createPlayer(playerId);
-                                    players[playerId].position.set(playerData.x, playerData.y, playerData.z);
-                                    players[playerId].rotation.y = playerData.ry;
-                                }
-                            } else if (change.type === "removed") {
-                                if (players[playerId]) {
-                                    scene.remove(players[playerId]);
-                                    delete players[playerId];
-                                }
-                            }
-                        });
-                    });
-
-                    // Удаление игрока при закрытии вкладки
-                    window.addEventListener('beforeunload', () => {
-                        deleteDoc(doc(db, "players", localPlayerId));
-                    });
-
-                } else {
-                   signInAnonymously(auth).catch(error => console.error("Ошибка анонимного входа:", error));
-                }
-            });
-        }
-        
-        async function updatePlayerPositionInFirestore() {
-            if (!localPlayerId || !localPlayer) return;
-            try {
-                const playerDocRef = doc(db, "players", localPlayerId);
-                await setDoc(playerDocRef, {
-                    x: localPlayer.position.x,
-                    y: localPlayer.position.y,
-                    z: localPlayer.position.z,
-                    ry: localPlayer.rotation.y, // rotation y
-                    timestamp: Date.now()
-                }, { merge: true });
-            } catch (error) {
-                console.error("Ошибка обновления данных в Firestore:", error);
-            }
-        }
-
-        // --- Управление ---
-        function setupControls() {
-            // Определение типа устройства
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            
-            if (isMobile) {
-                document.getElementById('mobile-controls').style.display = 'flex';
-                // Вперед
-                document.getElementById('move-forward').addEventListener('touchstart', () => movement.forward = 1);
-                document.getElementById('move-forward').addEventListener('touchend', () => movement.forward = 0);
-                // Назад
-                document.getElementById('move-backward').addEventListener('touchstart', () => movement.forward = -1);
-                document.getElementById('move-backward').addEventListener('touchend', () => movement.forward = 0);
-                // Влево
-                document.getElementById('turn-left').addEventListener('touchstart', () => movement.turn = 1);
-                document.getElementById('turn-left').addEventListener('touchend', () => movement.turn = 0);
-                // Вправо
-                document.getElementById('turn-right').addEventListener('touchstart', () => movement.turn = -1);
-                document.getElementById('turn-right').addEventListener('touchend', () => movement.turn = 0);
-            } else {
-                // Клавиатура
-                document.addEventListener('keydown', (e) => {
-                    switch(e.code) {
-                        case 'KeyW': case 'ArrowUp': movement.forward = 1; break;
-                        case 'KeyS': case 'ArrowDown': movement.forward = -1; break;
-                        case 'KeyA': case 'ArrowLeft': movement.turn = 1; break;
-                        case 'KeyD': case 'ArrowRight': movement.turn = -1; break;
-                    }
-                });
-                document.addEventListener('keyup', (e) => {
-                    switch(e.code) {
-                        case 'KeyW': case 'ArrowUp': movement.forward = 0; break;
-                        case 'KeyS': case 'ArrowDown': movement.forward = 0; break;
-                        case 'KeyA': case 'ArrowLeft': movement.turn = 0; break;
-                        case 'KeyD': case 'ArrowRight': movement.turn = 0; break;
-                    }
-                });
+                // Случайные координаты в пределах леса
+                const x = Math.random() * forestSize - forestSize / 2;
+                const z = Math.random() * forestSize - forestSize / 2;
+                scene.add(createTree(x, z));
             }
 
-            // Кнопка полного экрана
-            document.getElementById('fullscreen-btn').addEventListener('click', () => {
-                if (document.fullscreenElement) {
-                    document.exitFullscreen();
-                } else {
-                    document.documentElement.requestFullscreen().catch(err => {
-                        alert(`Не удалось войти в полноэкранный режим: ${err.message}`);
-                    });
-                }
-            });
+            // Рендерер
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0xcccccc);
+            document.body.appendChild(renderer.domElement);
+
+            // Обработчик изменения размера окна
+            window.addEventListener('resize', onWindowResize);
         }
 
-        // --- Игровой цикл ---
-        let lastUpdateTime = 0;
-        function animate() {
-            requestAnimationFrame(animate);
-            const delta = clock.getDelta();
-
-            if (localPlayer) {
-                const prevPosition = localPlayer.position.clone();
-                const prevRotation = localPlayer.rotation.y;
-
-                // Поворот
-                localPlayer.rotation.y += movement.turn * turnSpeed * delta;
-                
-                // Движение
-                if (movement.forward !== 0) {
-                    localPlayer.translateZ(-movement.forward * speed * delta);
-                }
-                
-                // Проверка, изменилась ли позиция
-                if (!localPlayer.position.equals(prevPosition) || localPlayer.rotation.y !== prevRotation) {
-                     // Отправляем данные в Firestore не чаще чем раз в 100 мс
-                    const now = Date.now();
-                    if (now - lastUpdateTime > 100) {
-                        updatePlayerPositionInFirestore();
-                        lastUpdateTime = now;
-                    }
-                }
-            }
-            
-            renderer.render(scene, camera);
-        }
-
-        // --- Вспомогательные функции ---
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
-        
-        // --- Запуск ---
-        init();
+
+        // --- Главный цикл анимации и движения ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = performance.now();
+            const delta = (time - prevTime) / 1000; // Время, прошедшее с последнего кадра в секундах
+
+            if (controls && controls.isLocked) { // Добавлена проверка controls на существование
+                // Применяем торможение (для более плавного движения)
+                velocity.x -= velocity.x * 10.0 * delta;
+                velocity.z -= velocity.z * 10.0 * delta;
+
+                // Применяем гравитацию (ускорение вниз)
+                velocity.y -= 9.8 * 50.0 * delta; 
+
+                // Вычисляем движение на основе нажатых клавиш
+                if (moveForward) velocity.z -= playerSpeed * delta;
+                if (moveBackward) velocity.z += playerSpeed * delta;
+                if (moveLeft) velocity.x -= playerSpeed * delta;
+                if (moveRight) velocity.x += playerSpeed * delta;
+
+                // Перемещение камеры
+                controls.moveRight(velocity.x * delta);
+                controls.moveForward(-velocity.z * delta);
+
+                camera.position.y += velocity.y * delta;
+
+                // Проверка на столкновение с землей (простая гравитация)
+                if (camera.position.y < playerHeight) {
+                    velocity.y = 0;
+                    camera.position.y = playerHeight;
+                }
+            }
+
+            prevTime = time;
+
+            if (renderer) {
+                 renderer.render(scene, camera);
+            }
+           
+        }
+
+        // Запуск приложения
+        window.onload = function() {
+            init();
+            animate();
+        };
+
     </script>
 </body>
 </html>
-
