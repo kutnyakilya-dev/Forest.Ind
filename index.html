@@ -3,292 +3,137 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мебельный Магнат</title>
-    <!-- Загрузка Tailwind CSS для современного мобильного дизайна -->
+    <title>Мобильная Игра - Интерфейс</title>
+    <!-- Подключение Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Подключение Font Awesome для иконок -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* Импорт шрифта Inter - более чистый и современный UI-шрифт */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        /* Добавляем шрифт Inter */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
         
-        /* Установка глобальных стилей */
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #172031; /* Глубокий, мягкий сине-серый фон */
-            color: #E0E7FF; /* Светлый, но не резкий текст */
-            margin: 0;
-            padding: 0;
-            overflow: hidden; 
-        }
-        
-        /* Стили для кнопок навигации */
-        .nav-button {
-            transition: all 0.3s ease-in-out;
-            border-top: 3px solid transparent;
-        }
-
-        .nav-button.active {
-            color: #FFD700; /* Золотой акцент для активной вкладки */
-            border-top-color: #FFD700;
-            background-color: rgba(255, 215, 0, 0.05); /* Легкая подсветка фона */
-        }
-
-        /* Основной контейнер, чтобы приложение занимало весь экран */
-        #app-container {
+            background-color: #0d1117; /* Темный фон для игрового мира */
+            color: #e6e6e6;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            height: 100vh;
-            max-width: 500px; /* Ограничение для имитации мобильного устройства */
-            margin: 0 auto;
-            background-color: #172031; /* Основной фон приложения */
-            box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+            padding-bottom: 5rem; /* Отступ, чтобы панель не закрывала контент */
         }
-    </style>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        // Новая цветовая палитра
-                        'bg-base': '#172031',        // Базовый фон
-                        'card-elevated': '#212C3F',  // Фон карточек
-                        'primary-action': '#4CAF50', // Зеленый для действия (СОЗДАТЬ)
-                        'active-tab': '#FFD700',     // Золото для активного элемента/денег
-                        'resource-wood': '#D2B48C',  // Цвет дерева
-                        'resource-metal': '#B0C4DE', // Цвет металла
-                    }
-                }
+
+        /* Стиль для кнопки с градиентом и тенью */
+        .nav-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 0.25rem;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.75rem; /* Размер для мобильных устройств */
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            border-radius: 0.625rem; /* Больше закругление */
+            color: #e6e6e6;
+            background: linear-gradient(145deg, #1f2731, #13181f);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.5);
+            min-width: 80px; /* Минимальная ширина для удобства на моб. */
+        }
+        
+        /* Эффект при наведении/нажатии */
+        .nav-button:hover, .nav-button.active {
+            background: linear-gradient(145deg, #3f83f8, #1c4d9e); /* Яркий синий градиент */
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6), 0 0 15px rgba(66, 153, 225, 0.6);
+            transform: translateY(-2px);
+            color: #ffffff;
+        }
+
+        /* Для иконок */
+        .nav-button i {
+            font-size: 1.25rem; /* Размер иконки */
+            margin-bottom: 0.25rem;
+        }
+
+        /* Медиа-запрос для десктопов */
+        @media (min-width: 640px) {
+            .nav-button {
+                font-size: 0.875rem; /* Чуть больше шрифт на ПК */
+                padding: 0.75rem 1rem;
+                min-width: 120px;
+            }
+            .nav-button i {
+                font-size: 1.5rem;
             }
         }
-    </script>
+    </style>
 </head>
 <body>
 
-<div id="app-container">
-    <!-- Верхний Заголовок / Панель Состояния -->
-    <header class="p-4 text-center bg-card-elevated border-b border-gray-600 shadow-lg">
-        <h1 class="text-2xl font-extrabold text-active-tab tracking-wide">Мебельный Магнат</h1>
-        <div id="stats" class="flex justify-around text-sm mt-2 font-semibold">
-            <span class="text-resource-wood">Дерево: 100</span>
-            <span class="text-resource-metal">Металл: 50</span>
-            <span class="text-active-tab">Деньги: $1500</span>
+    <!-- Основное игровое поле (Контент) -->
+    <div id="game-content" class="flex-grow p-4 text-center">
+        <h1 class="text-3xl font-bold mb-4">Добро пожаловать в игру!</h1>
+        <p class="text-xl text-gray-400">Здесь будет располагаться основной игровой мир.</p>
+        <div id="status-message" class="mt-8 p-3 rounded-xl bg-gray-800 text-green-400 shadow-lg">
+            Навигационная панель готова к использованию.
         </div>
-    </header>
+    </div>
 
-    <!-- Основное Содержимое (Прокручиваемая область) -->
-    <main id="main-content" class="flex-grow overflow-y-auto p-4 pb-20 bg-bg-base">
-        <!-- Содержимое будет рендериться здесь -->
-    </main>
-
-    <!-- Нижняя Панель Навигации -->
-    <nav id="nav-bar" class="fixed bottom-0 w-full max-w-[500px] h-16 bg-card-elevated border-t border-gray-600 shadow-2xl z-50">
-        <div class="flex h-full justify-around items-center">
+    <!-- Нижняя навигационная панель (Панель управления) -->
+    <footer id="nav-panel" class="fixed bottom-0 left-0 w-full p-2 sm:p-4 bg-gray-900 shadow-2xl shadow-black z-50 border-t border-gray-700/50">
+        <div class="max-w-4xl mx-auto flex justify-around space-x-2">
             
-            <!-- Мастерская -->
-            <button class="nav-button flex flex-col items-center justify-center h-full w-1/3 active" 
-                    onclick="switchTab('workshop', this)">
-                <!-- Иконка гаечного ключа (inline SVG) -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-wrench"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-                <span class="text-xs mt-0.5 font-medium">Мастерская</span>
+            <!-- Кнопка: Мастерская -->
+            <button class="nav-button active" onclick="setActiveButton(this, 'Мастерская')">
+                <i class="fas fa-hammer"></i>
+                <span>Мастерская</span>
             </button>
 
-            <!-- Склад -->
-            <button class="nav-button flex flex-col items-center justify-center h-full w-1-3 text-gray-400" 
-                    onclick="switchTab('storage', this)">
-                <!-- Иконка ящика/коробки (inline SVG) -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package"><path d="m7.5 4.27 9 5.15"/><path d="m21 15 2.22 1.25"/><path d="m19 19 2.22 1.25"/><path d="M12 22 4.5 17.5 4.5 9.5 12 5.5 19.5 9.5 19.5 17.5 12 22Z"/></svg>
-                <span class="text-xs mt-0.5 font-medium">Склад</span>
+            <!-- Кнопка: Склад -->
+            <button class="nav-button" onclick="setActiveButton(this, 'Склад')">
+                <i class="fas fa-box-open"></i>
+                <span>Склад</span>
             </button>
 
-            <!-- Магазин -->
-            <button class="nav-button flex flex-col items-center justify-center h-full w-1-3 text-gray-400" 
-                    onclick="switchTab('shop', this)">
-                <!-- Иконка корзины/магазина (inline SVG) -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-store"><path d="m19 10-2 4h-8l-2-4"/><path d="M21 10V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v5"/><path d="M12 15h.01"/><path d="M2 17l.64 1.28A2 2 0 0 0 4.5 19h15a2 2 0 0 0 1.86-1.72L22 17"/></svg>
-                <span class="text-xs mt-0.5 font-medium">Магазин</span>
+            <!-- Кнопка: Поставки -->
+            <button class="nav-button" onclick="setActiveButton(this, 'Поставки')">
+                <i class="fas fa-truck"></i>
+                <span>Поставки</span>
             </button>
+            
         </div>
-    </nav>
-</div>
+    </footer>
 
-<script>
-    // Объект для хранения текущего состояния игры 
-    let gameState = {
-        activeTab: 'workshop',
-        resources: {
-            wood: 100,
-            metal: 50,
-            money: 1500
-        },
-        inventory: [
-            { name: "Простой стул", quality: "Базовый", price: 50, count: 5 },
-            { name: "Дубовый стол", quality: "Хороший", price: 200, count: 1 }
-        ]
-    };
+    <script>
+        // Функция для симуляции активации кнопки и вывода сообщения
+        function setActiveButton(element, name) {
+            // Удаляем класс 'active' со всех кнопок
+            const buttons = document.querySelectorAll('.nav-button');
+            buttons.forEach(btn => btn.classList.remove('active'));
 
-    const mainContent = document.getElementById('main-content');
-    const navButtons = document.querySelectorAll('.nav-button');
-    const statsDisplay = document.getElementById('stats');
+            // Добавляем класс 'active' к нажатой кнопке
+            element.classList.add('active');
 
-    /**
-     * Рендерит панель статистики
-     */
-    function renderStats() {
-        statsDisplay.innerHTML = `
-            <span class="text-resource-wood">Дерево: ${gameState.resources.wood}</span>
-            <span class="text-resource-metal">Металл: ${gameState.resources.metal}</span>
-            <span class="text-active-tab">Деньги: $${gameState.resources.money}</span>
-        `;
-    }
-
-    /**
-     * Рендерит содержимое для активной вкладки
-     * @param {string} tabName 
-     */
-    function renderContent(tabName) {
-        let content = '';
-        gameState.activeTab = tabName;
-
-        if (tabName === 'workshop') {
-            content = `
-                <h2 class="text-xl font-bold mb-4 text-center text-active-tab border-b border-gray-600 pb-2">Мастерская: Сборка</h2>
-                <div class="flex items-center justify-center h-48 bg-card-elevated rounded-xl shadow-inner border border-gray-700">
-                    <p class="text-gray-400 text-lg font-medium">Пока пусто. Добавим сюда рецепты мебели!</p>
-                </div>
-            `;
-        } else if (tabName === 'storage') {
-            content = `
-                <h2 class="text-xl font-bold mb-4 text-center text-resource-metal border-b border-gray-600 pb-2">Склад: Ваши Активы</h2>
-                <div class="flex items-center justify-center h-48 bg-card-elevated rounded-xl shadow-inner border border-gray-700">
-                    <p class="text-gray-400 text-lg font-medium">Пока пусто. Здесь будут ваши ресурсы и готовая продукция.</p>
-                </div>
-            `;
-        } else if (tabName === 'shop') {
-            content = `
-                <h2 class="text-xl font-bold mb-4 text-center text-active-tab border-b border-gray-600 pb-2">Магазин: Продажа и Покупка</h2>
-                <div class="flex items-center justify-center h-48 bg-card-elevated rounded-xl shadow-inner border border-gray-700">
-                    <p class="text-gray-400 text-lg font-medium">Пока пусто. Здесь можно будет продавать и покупать ресурсы.</p>
-                </div>
-            `;
+            // Выводим сообщение о выборе
+            const statusMessage = document.getElementById('status-message');
+            statusMessage.textContent = `Вы выбрали: ${name}. Здесь будет открываться соответствующий экран.`;
+            statusMessage.classList.remove('text-green-400', 'text-yellow-400');
+            statusMessage.classList.add('text-yellow-400');
         }
 
-        mainContent.innerHTML = content;
-        // Прокрутка наверх при смене вкладки
-        mainContent.scrollTop = 0; 
-    }
-
-    /**
-     * Логика переключения вкладок
-     * @param {string} tabName 
-     * @param {HTMLElement} element 
-     */
-    function switchTab(tabName, element) {
-        if (gameState.activeTab === tabName) return;
-
-        // Удалить активный класс со всех кнопок и сбросить цвет
-        navButtons.forEach(btn => {
-            btn.classList.remove('active', 'text-active-tab', 'text-resource-metal', 'text-resource-wood');
-            btn.classList.add('text-gray-400');
-        });
-
-        // Добавить активный класс и установить цвет для выбранной кнопки
-        element.classList.add('active', 'text-active-tab');
-        element.classList.remove('text-gray-400');
-
-        renderContent(tabName);
-    }
-
-    // --- Игровая Логика (заглушки) ---
-    // Функции оставлены для структуры, но не вызываются из UI
-    function craftItem(name, requiredWood, requiredMetal) {
-        if (gameState.resources.wood >= requiredWood && gameState.resources.metal >= requiredMetal) {
-            gameState.resources.wood -= requiredWood;
-            gameState.resources.metal -= requiredMetal;
-            const existingItem = gameState.inventory.find(item => item.name === name);
-            if (existingItem) {
-                existingItem.count += 1;
-            } else {
-                const price = name === 'Простой стул' ? 50 : 120;
-                gameState.inventory.push({ name: name, quality: "Базовый", price: price, count: 1 });
+        // Установка начального активного состояния при загрузке
+        window.onload = function() {
+            const initialActive = document.querySelector('.nav-button.active');
+            if (initialActive) {
+                // Имитируем клик, чтобы установить начальное сообщение
+                setActiveButton(initialActive, 'Мастерская'); 
             }
-            alertMessage(`Создан: ${name}!`);
-            renderStats();
-        } else {
-            alertMessage('Не хватает ресурсов!', 'error');
-        }
-    }
+        };
 
-    function sellItem(name) {
-        const itemIndex = gameState.inventory.findIndex(item => item.name === name);
-        if (itemIndex !== -1 && gameState.inventory[itemIndex].count > 0) {
-            const item = gameState.inventory[itemIndex];
-            gameState.resources.money += item.price;
-            item.count -= 1;
-            if (item.count === 0) {
-                gameState.inventory.splice(itemIndex, 1);
-            }
-            alertMessage(`Продано: ${name} за $${item.price}!`);
-            renderStats();
-        }
-    }
-
-    function buyResource(resourceType, amount, cost) {
-        if (gameState.resources.money >= cost) {
-            gameState.resources.money -= cost;
-            gameState.resources[resourceType] += amount;
-            alertMessage(`Куплено ${amount} ${resourceType === 'wood' ? 'Дерева' : 'Металла'} за $${cost}.`);
-            renderStats();
-        } else {
-            alertMessage('Недостаточно денег!', 'error');
-        }
-    }
-
-    // --- Кастомное всплывающее сообщение (вместо alert) ---
-    function alertMessage(message, type = 'success') {
-        let msgBox = document.getElementById('custom-message-box');
-        if (!msgBox) {
-            msgBox = document.createElement('div');
-            msgBox.id = 'custom-message-box';
-            msgBox.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 p-3 rounded-lg shadow-2xl transition-all duration-300 z-[100] text-center opacity-0';
-            document.body.appendChild(msgBox);
-        }
-
-        msgBox.textContent = message;
-        msgBox.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 p-3 rounded-xl shadow-2xl transition-all duration-300 z-[100] text-center';
-        
-        if (type === 'success') {
-            msgBox.classList.add('bg-green-600', 'text-white');
-        } else if (type === 'error') {
-            msgBox.classList.add('bg-red-600', 'text-white');
-        }
-
-        // Показать
-        msgBox.classList.remove('opacity-0');
-        
-        // Скрыть через 3 секунды
-        setTimeout(() => {
-            msgBox.classList.add('opacity-0');
-            // Удалить, чтобы не накапливать элементы
-            setTimeout(() => {
-                if(document.body.contains(msgBox)) {
-                    document.body.removeChild(msgBox);
-                }
-            }, 500); 
-        }, 3000);
-    }
-
-
-    // Инициализация при загрузке
-    window.onload = () => {
-        // Убедимся, что навигация корректно работает сразу
-        const initialButton = document.querySelector('.nav-button.active');
-        if (initialButton) {
-            // Принудительно запускаем switchTab, чтобы задать начальный контент
-            switchTab(gameState.activeTab, initialButton); 
-        } else {
-            // Если что-то пошло не так, просто рендерим
-            renderContent(gameState.activeTab);
-        }
-    };
-</script>
+        // Заглушки для предотвращения ошибок
+        const __app_id = 'default-app-id';
+        const __firebase_config = '{}';
+        const __initial_auth_token = undefined;
+    </script>
 </body>
 </html>
