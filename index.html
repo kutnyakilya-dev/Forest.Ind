@@ -19,7 +19,9 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            padding-bottom: 5rem; /* Отступ, чтобы панель не закрывала контент */
+            /* Измененные отступы, чтобы вместить верхнюю и нижнюю панели */
+            padding-top: 5rem; 
+            padding-bottom: 5rem;
         }
 
         /* Стиль для кнопки с градиентом и тенью */
@@ -70,6 +72,23 @@
 </head>
 <body>
 
+    <!-- Верхняя панель (Информация) -->
+    <header id="top-panel" class="fixed top-0 left-0 w-full p-3 bg-gray-900 shadow-xl shadow-black z-50 border-b border-gray-700/50">
+        <!-- justify-start для размещения элементов слева -->
+        <div class="max-w-4xl mx-auto flex justify-start items-center w-full">
+            
+            <!-- 1. Денежная валюта (Слева) -->
+            <div class="flex items-center space-x-2 text-xl font-bold text-yellow-400 p-2 bg-gray-800/70 rounded-xl shadow-inner border border-yellow-700/50">
+                <i class="fas fa-coins text-yellow-500"></i>
+                <span id="money-display">1,000</span>
+                <span class="text-sm font-normal text-gray-400 ml-1">Kredits</span>
+            </div>
+            
+            <!-- 2. Раздел Ресурсы (Удален с верхней панели, так как перемещен в виде кнопки вниз) -->
+            
+        </div>
+    </header>
+
     <!-- Основное игровое поле (Контент) -->
     <div id="game-content" class="flex-grow p-4 text-center">
         <h1 class="text-3xl font-bold mb-4">Добро пожаловать в игру!</h1>
@@ -99,6 +118,12 @@
             <button class="nav-button" onclick="setActiveButton(this, 'Поставки')">
                 <i class="fas fa-truck"></i>
                 <span>Поставки</span>
+            </button>
+            
+            <!-- НОВАЯ Кнопка: Ресурсы -->
+            <button class="nav-button" onclick="setActiveButton(this, 'Ресурсы')">
+                <i class="fas fa-gem"></i>
+                <span>Ресурсы</span>
             </button>
             
         </div>
