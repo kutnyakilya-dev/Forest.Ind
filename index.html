@@ -3,378 +3,292 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Моя Ферма</title>
-    <!-- Подключение Tailwind CSS -->
+    <title>Мебельный Магнат</title>
+    <!-- Загрузка Tailwind CSS для современного мобильного дизайна -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Подключение Firebase/Firestore -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, updateDoc, collection, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Глобальные переменные Firebase
-        window.firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        window.app = initializeApp(window.firebaseConfig);
-        window.db = getFirestore(window.app);
-        window.auth = getAuth(window.app);
-        window.appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        window.initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-        setLogLevel('Debug'); // Включаем логирование для отладки
-
-        // Инициализация и аутентификация
-        window.setupFirebase = async () => {
-            try {
-                if (window.initialAuthToken) {
-                    await signInWithCustomToken(window.auth, window.initialAuthToken);
-                } else {
-                    await signInAnonymously(window.auth);
-                }
-
-                onAuthStateChanged(window.auth, (user) => {
-                    if (user) {
-                        window.userId = user.uid;
-                        console.log("Authenticated as:", window.userId);
-                        window.loadGameData();
-                    } else {
-                        // Если нет аутентификации (хотя анонимная должна сработать)
-                        window.userId = crypto.randomUUID();
-                        console.log("Using temporary ID:", window.userId);
-                        window.loadGameData();
-                    }
-                });
-            } catch (error) {
-                console.error("Firebase Auth Error:", error);
-            }
-        };
-
-        window.loadGameData = () => {
-            // Путь к документу пользователя: /artifacts/{appId}/users/{userId}/game_data/main_data
-            const userDocPath = `artifacts/${window.appId}/users/${window.userId}/game_data`;
-            const mainDocRef = doc(window.db, userDocPath, 'main_data');
-
-            // Устанавливаем слушатель в реальном времени
-            onSnapshot(mainDocRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    window.gameState.money = data.money || 0;
-                    window.gameState.inventory = data.inventory || {};
-                    console.log("Game data loaded/updated:", window.gameState);
-                } else {
-                    // Создаем начальные данные, если документ не существует
-                    console.log("No data found. Creating initial data.");
-                    window.gameState.money = 100; // Начальный капитал
-                    window.gameState.inventory = { 'Яйцо': 0 };
-                    // setDoc создает документ, если его нет
-                    setDoc(mainDocRef, window.gameState).catch(err => console.error("Error creating initial data:", err));
-                }
-                window.updateUI(); // Обновляем весь интерфейс после загрузки/обновления
-            }, (error) => {
-                console.error("Firestore Snapshot Error:", error);
-            });
-        };
-
-        window.saveGameData = async () => {
-            const userDocPath = `artifacts/${window.appId}/users/${window.userId}/game_data`;
-            const mainDocRef = doc(window.db, userDocPath, 'main_data');
-            try {
-                // Обновляем только поля money и inventory
-                await updateDoc(mainDocRef, {
-                    money: window.gameState.money,
-                    inventory: window.gameState.inventory
-                });
-                console.log("Game data saved successfully.");
-            } catch (error) {
-                console.error("Error saving game data:", error);
-            }
-        };
-
-        // Запускаем инициализацию при загрузке окна
-        window.addEventListener('load', window.setupFirebase);
-    </script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+        /* Импорт шрифта Inter - более чистый и современный UI-шрифт */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        
+        /* Установка глобальных стилей */
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f7f3e8; /* Светлый фон */
-            /* Убеждаемся, что отступы удалены для полного экрана */
-            padding: 0;
+            background-color: #172031; /* Глубокий, мягкий сине-серый фон */
+            color: #E0E7FF; /* Светлый, но не резкий текст */
             margin: 0;
-            width: 100vw;
-            height: 100vh; /* Явно задаем высоту viewport */
-            overflow: hidden; /* Запрещаем скролл на уровне body */
+            padding: 0;
+            overflow: hidden; 
         }
-        .game-container {
-            /* Контейнер занимает 100% высоты body */
-            width: 100%;
-            height: 100%; 
-            background-color: #ffffff; /* Белый фон для содержимого */
-            overflow: hidden;
+        
+        /* Стили для кнопок навигации */
+        .nav-button {
+            transition: all 0.3s ease-in-out;
+            border-top: 3px solid transparent;
         }
-        .tab-button {
-            transition: all 0.2s ease;
-            position: relative;
-            z-index: 10;
-            /* Изменено на border-top, т.к. навигация внизу */
-            border-top: 4px solid transparent; 
+
+        .nav-button.active {
+            color: #FFD700; /* Золотой акцент для активной вкладки */
+            border-top-color: #FFD700;
+            background-color: rgba(255, 215, 0, 0.05); /* Легкая подсветка фона */
         }
-        .tab-button:hover:not(.active) {
-            background-color: #f5f5f5;
-        }
-        .tab-button.active {
-            background-color: #fff;
-            color: #d97706; /* Amber color */
-            /* Изменено на border-top */
-            border-top: 4px solid #d97706;
-            font-weight: 700;
-        }
-        .item-card {
-            background-color: #fffbe6; /* Light yellow background */
-            border: 2px solid #fbbf24;
-            transition: transform 0.1s;
-        }
-        .buy-button {
-            background-color: #10b981; /* Emerald green */
-            transition: background-color 0.15s, transform 0.1s;
-        }
-        .buy-button:hover:not(:disabled) {
-            background-color: #059669;
-            transform: translateY(-1px);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        .buy-button:disabled {
-            background-color: #d1d5db; /* Gray out when disabled */
-            cursor: not-allowed;
+
+        /* Основной контейнер, чтобы приложение занимало весь экран */
+        #app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 500px; /* Ограничение для имитации мобильного устройства */
+            margin: 0 auto;
+            background-color: #172031; /* Основной фон приложения */
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
         }
     </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        // Новая цветовая палитра
+                        'bg-base': '#172031',        // Базовый фон
+                        'card-elevated': '#212C3F',  // Фон карточек
+                        'primary-action': '#4CAF50', // Зеленый для действия (СОЗДАТЬ)
+                        'active-tab': '#FFD700',     // Золото для активного элемента/денег
+                        'resource-wood': '#D2B48C',  // Цвет дерева
+                        'resource-metal': '#B0C4DE', // Цвет металла
+                    }
+                }
+            }
+        }
+    </script>
 </head>
-<!-- Убраны h-screen w-screen из body, так как они в CSS -->
-<body class="overflow-hidden"> 
+<body>
 
-    <!-- Контейнер занимает весь body и использует flex для вертикальной компоновки -->
-    <div id="app" class="game-container flex flex-col">
-        <!-- HEADER: Деньги и ID Пользователя (Верхняя часть, не сжимается) -->
-        <header class="p-4 bg-yellow-600 text-white flex justify-between items-center shadow-lg flex-shrink-0">
-            <h1 class="text-2xl font-bold">Моя Ферма</h1>
-            <div class="text-right">
-                <div id="money-display" class="text-xl font-bold bg-yellow-800 p-1 px-3 rounded-full shadow-inner">
-                    Деньги: 0 💰
-                </div>
-                <div class="text-xs mt-1 opacity-75">
-                    ID: <span id="user-id-display">Загрузка...</span>
-                </div>
-            </div>
-        </header>
+<div id="app-container">
+    <!-- Верхний Заголовок / Панель Состояния -->
+    <header class="p-4 text-center bg-card-elevated border-b border-gray-600 shadow-lg">
+        <h1 class="text-2xl font-extrabold text-active-tab tracking-wide">Мебельный Магнат</h1>
+        <div id="stats" class="flex justify-around text-sm mt-2 font-semibold">
+            <span class="text-resource-wood">Дерево: 100</span>
+            <span class="text-resource-metal">Металл: 50</span>
+            <span class="text-active-tab">Деньги: $1500</span>
+        </div>
+    </header>
 
-        <!-- ОСНОВНОЕ СОДЕРЖАНИЕ (Занимает все доступное пространство и прокручивается) -->
-        <main id="tab-content" class="p-6 overflow-y-auto flex-grow">
-            <!-- Содержимое будет динамически обновляться здесь -->
-        </main>
+    <!-- Основное Содержимое (Прокручиваемая область) -->
+    <main id="main-content" class="flex-grow overflow-y-auto p-4 pb-20 bg-bg-base">
+        <!-- Содержимое будет рендериться здесь -->
+    </main>
 
-        <!-- ИНВЕНТАРЬ (Под контентом, не сжимается) -->
-        <section class="p-4 bg-gray-50 border-t border-gray-200 flex-shrink-0">
-            <h2 class="text-lg font-bold text-gray-700 mb-2">Инвентарь</h2>
-            <div id="inventory-display" class="flex flex-wrap gap-2">
-                <!-- Элементы инвентаря будут здесь -->
-                <p class="text-gray-500 italic">Пусто</p>
-            </div>
-        </section>
-        
-        <!-- ТАБЫ (НИЖНЯЯ НАВИГАЦИЯ) -->
-        <nav class="flex justify-around bg-gray-100 border-t border-gray-300 flex-shrink-0">
-            <button id="tab-farm" class="tab-button active p-3 w-1/3 text-gray-700" onclick="switchTab('farm')">
-                Ферма
+    <!-- Нижняя Панель Навигации -->
+    <nav id="nav-bar" class="fixed bottom-0 w-full max-w-[500px] h-16 bg-card-elevated border-t border-gray-600 shadow-2xl z-50">
+        <div class="flex h-full justify-around items-center">
+            
+            <!-- Мастерская -->
+            <button class="nav-button flex flex-col items-center justify-center h-full w-1/3 active" 
+                    onclick="switchTab('workshop', this)">
+                <!-- Иконка гаечного ключа (inline SVG) -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-wrench"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                <span class="text-xs mt-0.5 font-medium">Мастерская</span>
             </button>
-            <button id="tab-shop" class="tab-button p-3 w-1/3 text-gray-700" onclick="switchTab('shop')">
-                Магазин
-            </button>
-            <button id="tab-settings" class="tab-button p-3 w-1/3 text-gray-700" onclick="switchTab('settings')">
-                Настройки
-            </button>
-        </nav>
-    </div>
 
-    <!-- Модальное окно (используется вместо alert/confirm) -->
-    <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
-        <div class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full border-4 border-yellow-500">
-            <h3 id="modal-title" class="text-xl font-bold mb-3 text-yellow-700"></h3>
-            <p id="modal-message" class="mb-4"></p>
-            <button onclick="closeModal()" class="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 rounded-lg transition">
-                ОК
+            <!-- Склад -->
+            <button class="nav-button flex flex-col items-center justify-center h-full w-1-3 text-gray-400" 
+                    onclick="switchTab('storage', this)">
+                <!-- Иконка ящика/коробки (inline SVG) -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-package"><path d="m7.5 4.27 9 5.15"/><path d="m21 15 2.22 1.25"/><path d="m19 19 2.22 1.25"/><path d="M12 22 4.5 17.5 4.5 9.5 12 5.5 19.5 9.5 19.5 17.5 12 22Z"/></svg>
+                <span class="text-xs mt-0.5 font-medium">Склад</span>
+            </button>
+
+            <!-- Магазин -->
+            <button class="nav-button flex flex-col items-center justify-center h-full w-1-3 text-gray-400" 
+                    onclick="switchTab('shop', this)">
+                <!-- Иконка корзины/магазина (inline SVG) -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-store"><path d="m19 10-2 4h-8l-2-4"/><path d="M21 10V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v5"/><path d="M12 15h.01"/><path d="M2 17l.64 1.28A2 2 0 0 0 4.5 19h15a2 2 0 0 0 1.86-1.72L22 17"/></svg>
+                <span class="text-xs mt-0.5 font-medium">Магазин</span>
             </button>
         </div>
-    </div>
+    </nav>
+</div>
 
-    <script>
-        // Игровое состояние (будет синхронизироваться с Firebase)
-        window.gameState = {
-            money: 0,
-            inventory: {},
-            currentTab: 'farm'
-        };
+<script>
+    // Объект для хранения текущего состояния игры 
+    let gameState = {
+        activeTab: 'workshop',
+        resources: {
+            wood: 100,
+            metal: 50,
+            money: 1500
+        },
+        inventory: [
+            { name: "Простой стул", quality: "Базовый", price: 50, count: 5 },
+            { name: "Дубовый стол", quality: "Хороший", price: 200, count: 1 }
+        ]
+    };
 
-        const SHOP_ITEMS = [
-            { id: 'egg', name: 'Яйцо', price: 40, emoji: '🥚', description: 'Основа любой фермы. Нужна для начала.' }
-        ];
+    const mainContent = document.getElementById('main-content');
+    const navButtons = document.querySelectorAll('.nav-button');
+    const statsDisplay = document.getElementById('stats');
 
-        // --- Вспомогательные функции UI ---
+    /**
+     * Рендерит панель статистики
+     */
+    function renderStats() {
+        statsDisplay.innerHTML = `
+            <span class="text-resource-wood">Дерево: ${gameState.resources.wood}</span>
+            <span class="text-resource-metal">Металл: ${gameState.resources.metal}</span>
+            <span class="text-active-tab">Деньги: $${gameState.resources.money}</span>
+        `;
+    }
 
-        function openModal(title, message) {
-            document.getElementById('modal-title').textContent = title;
-            document.getElementById('modal-message').textContent = message;
-            document.getElementById('modal').classList.remove('hidden');
-            document.getElementById('modal').classList.add('flex');
+    /**
+     * Рендерит содержимое для активной вкладки
+     * @param {string} tabName 
+     */
+    function renderContent(tabName) {
+        let content = '';
+        gameState.activeTab = tabName;
+
+        if (tabName === 'workshop') {
+            content = `
+                <h2 class="text-xl font-bold mb-4 text-center text-active-tab border-b border-gray-600 pb-2">Мастерская: Сборка</h2>
+                <div class="flex items-center justify-center h-48 bg-card-elevated rounded-xl shadow-inner border border-gray-700">
+                    <p class="text-gray-400 text-lg font-medium">Пока пусто. Добавим сюда рецепты мебели!</p>
+                </div>
+            `;
+        } else if (tabName === 'storage') {
+            content = `
+                <h2 class="text-xl font-bold mb-4 text-center text-resource-metal border-b border-gray-600 pb-2">Склад: Ваши Активы</h2>
+                <div class="flex items-center justify-center h-48 bg-card-elevated rounded-xl shadow-inner border border-gray-700">
+                    <p class="text-gray-400 text-lg font-medium">Пока пусто. Здесь будут ваши ресурсы и готовая продукция.</p>
+                </div>
+            `;
+        } else if (tabName === 'shop') {
+            content = `
+                <h2 class="text-xl font-bold mb-4 text-center text-active-tab border-b border-gray-600 pb-2">Магазин: Продажа и Покупка</h2>
+                <div class="flex items-center justify-center h-48 bg-card-elevated rounded-xl shadow-inner border border-gray-700">
+                    <p class="text-gray-400 text-lg font-medium">Пока пусто. Здесь можно будет продавать и покупать ресурсы.</p>
+                </div>
+            `;
         }
 
-        function closeModal() {
-            document.getElementById('modal').classList.add('hidden');
-            document.getElementById('modal').classList.remove('flex');
-        }
+        mainContent.innerHTML = content;
+        // Прокрутка наверх при смене вкладки
+        mainContent.scrollTop = 0; 
+    }
 
-        function switchTab(tabName) {
-            window.gameState.currentTab = tabName;
-            // Обновляем внешний вид кнопок
-            document.querySelectorAll('.tab-button').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            document.getElementById(`tab-${tabName}`).classList.add('active');
+    /**
+     * Логика переключения вкладок
+     * @param {string} tabName 
+     * @param {HTMLElement} element 
+     */
+    function switchTab(tabName, element) {
+        if (gameState.activeTab === tabName) return;
 
-            // Обновляем содержимое
-            updateContent();
-        }
+        // Удалить активный класс со всех кнопок и сбросить цвет
+        navButtons.forEach(btn => {
+            btn.classList.remove('active', 'text-active-tab', 'text-resource-metal', 'text-resource-wood');
+            btn.classList.add('text-gray-400');
+        });
 
-        function updateContent() {
-            const contentDiv = document.getElementById('tab-content');
-            contentDiv.innerHTML = ''; // Очищаем содержимое
+        // Добавить активный класс и установить цвет для выбранной кнопки
+        element.classList.add('active', 'text-active-tab');
+        element.classList.remove('text-gray-400');
 
-            switch (window.gameState.currentTab) {
-                case 'farm':
-                    contentDiv.innerHTML = renderFarmTab();
-                    break;
-                case 'shop':
-                    contentDiv.innerHTML = renderShopTab();
-                    break;
-                case 'settings':
-                    contentDiv.innerHTML = renderSettingsTab();
-                    break;
-            }
-        }
+        renderContent(tabName);
+    }
 
-        function updateUI() {
-            // Обновление денег
-            document.getElementById('money-display').textContent = `Деньги: ${window.gameState.money} 💰`;
-
-            // Обновление ID пользователя
-            document.getElementById('user-id-display').textContent = window.userId ? window.userId : 'N/A';
-
-            // Обновление инвентаря
-            const inventoryDiv = document.getElementById('inventory-display');
-            inventoryDiv.innerHTML = '';
-
-            const items = window.gameState.inventory;
-            const itemKeys = Object.keys(items);
-
-            if (itemKeys.length === 0 || itemKeys.every(key => items[key] === 0)) {
-                inventoryDiv.innerHTML = '<p class="text-gray-500 italic">Инвентарь пуст. Купите что-нибудь в магазине!</p>';
+    // --- Игровая Логика (заглушки) ---
+    // Функции оставлены для структуры, но не вызываются из UI
+    function craftItem(name, requiredWood, requiredMetal) {
+        if (gameState.resources.wood >= requiredWood && gameState.resources.metal >= requiredMetal) {
+            gameState.resources.wood -= requiredWood;
+            gameState.resources.metal -= requiredMetal;
+            const existingItem = gameState.inventory.find(item => item.name === name);
+            if (existingItem) {
+                existingItem.count += 1;
             } else {
-                itemKeys.forEach(itemName => {
-                    const quantity = items[itemName];
-                    if (quantity > 0) {
-                        const itemElement = document.createElement('span');
-                        itemElement.className = 'bg-yellow-200 text-yellow-900 px-3 py-1 rounded-full text-sm font-semibold shadow';
-                        // Ищем эмодзи по имени, если есть
-                        const itemData = SHOP_ITEMS.find(item => item.name === itemName);
-                        const emoji = itemData ? itemData.emoji : '📦';
-                        itemElement.textContent = `${emoji} ${itemName}: ${quantity}`;
-                        inventoryDiv.appendChild(itemElement);
-                    }
-                });
+                const price = name === 'Простой стул' ? 50 : 120;
+                gameState.inventory.push({ name: name, quality: "Базовый", price: price, count: 1 });
             }
+            alertMessage(`Создан: ${name}!`);
+            renderStats();
+        } else {
+            alertMessage('Не хватает ресурсов!', 'error');
+        }
+    }
 
-            // Обновление основного содержимого (если оно зависит от состояния)
-            updateContent();
+    function sellItem(name) {
+        const itemIndex = gameState.inventory.findIndex(item => item.name === name);
+        if (itemIndex !== -1 && gameState.inventory[itemIndex].count > 0) {
+            const item = gameState.inventory[itemIndex];
+            gameState.resources.money += item.price;
+            item.count -= 1;
+            if (item.count === 0) {
+                gameState.inventory.splice(itemIndex, 1);
+            }
+            alertMessage(`Продано: ${name} за $${item.price}!`);
+            renderStats();
+        }
+    }
+
+    function buyResource(resourceType, amount, cost) {
+        if (gameState.resources.money >= cost) {
+            gameState.resources.money -= cost;
+            gameState.resources[resourceType] += amount;
+            alertMessage(`Куплено ${amount} ${resourceType === 'wood' ? 'Дерева' : 'Металла'} за $${cost}.`);
+            renderStats();
+        } else {
+            alertMessage('Недостаточно денег!', 'error');
+        }
+    }
+
+    // --- Кастомное всплывающее сообщение (вместо alert) ---
+    function alertMessage(message, type = 'success') {
+        let msgBox = document.getElementById('custom-message-box');
+        if (!msgBox) {
+            msgBox = document.createElement('div');
+            msgBox.id = 'custom-message-box';
+            msgBox.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 p-3 rounded-lg shadow-2xl transition-all duration-300 z-[100] text-center opacity-0';
+            document.body.appendChild(msgBox);
         }
 
-        // --- Логика вкладок ---
-
-        function renderFarmTab() {
-            return `
-                <div class="text-center p-8 bg-green-50 rounded-lg border-2 border-green-300">
-                    <h2 class="text-3xl font-bold text-green-700 mb-4">🏠 Ферма</h2>
-                    <p class="text-gray-600">Ваша ферма пока пуста. Купите яйца в магазине, чтобы начать производить ресурсы!</p>
-                    <p class="mt-4 text-sm text-gray-500">Здесь в будущем появятся ваши животные и постройки.</p>
-                </div>
-            `;
+        msgBox.textContent = message;
+        msgBox.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 p-3 rounded-xl shadow-2xl transition-all duration-300 z-[100] text-center';
+        
+        if (type === 'success') {
+            msgBox.classList.add('bg-green-600', 'text-white');
+        } else if (type === 'error') {
+            msgBox.classList.add('bg-red-600', 'text-white');
         }
 
-        function renderShopTab() {
-            let html = `
-                <h2 class="text-3xl font-bold text-yellow-700 mb-4">🛒 Магазин</h2>
-                <div class="space-y-4">
-            `;
-
-            SHOP_ITEMS.forEach(item => {
-                const canAfford = window.gameState.money >= item.price;
-                html += `
-                    <div class="item-card p-4 rounded-xl shadow-md flex justify-between items-center">
-                        <div>
-                            <p class="text-xl font-bold text-yellow-800">${item.emoji} ${item.name}</p>
-                            <p class="text-sm text-gray-600">${item.description}</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-lg font-semibold text-red-600 mb-2">Цена: ${item.price} 💰</p>
-                            <button
-                                onclick="buyItem('${item.name}', ${item.price})"
-                                ${canAfford ? '' : 'disabled'}
-                                class="buy-button text-white font-bold py-2 px-4 rounded-lg shadow-md disabled:opacity-50"
-                            >
-                                ${canAfford ? 'Купить' : 'Не хватает'}
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
-
-            html += `</div>`;
-            return html;
-        }
-
-        function renderSettingsTab() {
-            return `
-                <div class="text-center p-8 bg-blue-50 rounded-lg border-2 border-blue-300">
-                    <h2 class="text-3xl font-bold text-blue-700 mb-4">⚙️ Настройки</h2>
-                    <p class="text-gray-600">Здесь будут опции игры.</p>
-                    <p class="mt-4 text-sm text-gray-500">Например, сброс прогресса или настройка звуков.</p>
-                </div>
-            `;
-        }
-
-
-        // --- Логика покупки ---
-
-        function buyItem(itemName, price) {
-            if (window.gameState.money >= price) {
-                // 1. Списываем деньги
-                window.gameState.money -= price;
-
-                // 2. Добавляем в инвентарь
-                if (window.gameState.inventory[itemName]) {
-                    window.gameState.inventory[itemName] += 1;
-                } else {
-                    window.gameState.inventory[itemName] = 1;
+        // Показать
+        msgBox.classList.remove('opacity-0');
+        
+        // Скрыть через 3 секунды
+        setTimeout(() => {
+            msgBox.classList.add('opacity-0');
+            // Удалить, чтобы не накапливать элементы
+            setTimeout(() => {
+                if(document.body.contains(msgBox)) {
+                    document.body.removeChild(msgBox);
                 }
+            }, 500); 
+        }, 3000);
+    }
 
-                // 3. Сохраняем и обновляем UI
-                window.saveGameData(); // Сохраняем изменения в Firestore
-                openModal("Покупка совершена!", `Вы купили 1 ${itemName} за ${price} 💰.`);
 
-            } else {
-                openModal("Ошибка", `Недостаточно денег для покупки ${itemName}. Вам не хватает ${price - window.gameState.money} 💰.`);
-            }
+    // Инициализация при загрузке
+    window.onload = () => {
+        // Убедимся, что навигация корректно работает сразу
+        const initialButton = document.querySelector('.nav-button.active');
+        if (initialButton) {
+            // Принудительно запускаем switchTab, чтобы задать начальный контент
+            switchTab(gameState.activeTab, initialButton); 
+        } else {
+            // Если что-то пошло не так, просто рендерим
+            renderContent(gameState.activeTab);
         }
-
-        // Устанавливаем начальную вкладку
-        switchTab(window.gameState.currentTab);
-    </script>
+    };
+</script>
 </body>
 </html>
