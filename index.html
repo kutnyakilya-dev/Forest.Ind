@@ -68,6 +68,59 @@
                 font-size: 1.5rem;
             }
         }
+
+        /* Стиль для отображения ресурсов на верхней панели */
+        .resource-display {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.625rem;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+            border-width: 1px;
+            font-weight: 700;
+            font-size: 0.875rem; /* Базовый размер */
+            transition: all 0.4s ease-out; /* Плавный переход для анимации */
+        }
+        .resource-display i {
+            font-size: 1rem; /* Размер иконки */
+            margin-right: 0.25rem;
+        }
+        @media (min-width: 640px) {
+            .resource-display {
+                font-size: 1rem;
+            }
+            .resource-display i {
+                font-size: 1.25rem;
+            }
+        }
+        
+        /* Стиль для кнопки добычи ресурса */
+        .gather-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 2rem 1rem;
+            border-radius: 1rem;
+            font-size: 1.125rem;
+            font-weight: 700;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.5);
+            transition: all 0.1s ease-in-out;
+            cursor: pointer;
+        }
+        .gather-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.6);
+        }
+        .gather-button:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+        }
+        .gather-button i {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -75,27 +128,69 @@
     <!-- Верхняя панель (Информация) -->
     <header id="top-panel" class="fixed top-0 left-0 w-full p-3 bg-gray-900 shadow-xl shadow-black z-50 border-b border-gray-700/50">
         <!-- justify-start для размещения элементов слева -->
-        <div class="max-w-4xl mx-auto flex justify-start items-center w-full">
+        <div class="max-w-4xl mx-auto flex justify-start items-center space-x-2 sm:space-x-4 w-full">
             
-            <!-- 1. Денежная валюта (Слева) -->
-            <div class="flex items-center space-x-2 text-xl font-bold text-yellow-400 p-2 bg-gray-800/70 rounded-xl shadow-inner border border-yellow-700/50">
+            <!-- 1. Деньги (Монеты) -->
+            <div id="money-resource-display" class="resource-display bg-gray-800/70 border-yellow-700/50 text-yellow-400">
                 <i class="fas fa-coins text-yellow-500"></i>
-                <span id="money-display">1,000</span>
-                <span class="text-sm font-normal text-gray-400 ml-1">Kredits</span>
+                <span id="money-display">0.00</span>
             </div>
             
-            <!-- 2. Раздел Ресурсы (Удален с верхней панели, так как перемещен в виде кнопки вниз) -->
+            <!-- 2. Дерево -->
+            <div id="wood-resource-display" class="resource-display bg-gray-800/70 border-amber-800/50 text-amber-500">
+                <i class="fas fa-tree text-amber-600"></i>
+                <span id="wood-display">0.00</span>
+            </div>
+
+            <!-- 3. Гвозди -->
+            <div id="nails-resource-display" class="resource-display bg-gray-800/70 border-gray-700/50 text-gray-400">
+                <i class="fas fa-screwdriver text-gray-500"></i>
+                <span id="nails-display">0.00</span>
+            </div>
             
         </div>
     </header>
 
     <!-- Основное игровое поле (Контент) -->
-    <div id="game-content" class="flex-grow p-4 text-center">
-        <h1 class="text-3xl font-bold mb-4">Добро пожаловать в игру!</h1>
-        <p class="text-xl text-gray-400">Здесь будет располагаться основной игровой мир.</p>
-        <div id="status-message" class="mt-8 p-3 rounded-xl bg-gray-800 text-green-400 shadow-lg">
-            Навигационная панель готова к использованию.
+    <div id="game-content" class="flex-grow p-4 text-center max-w-4xl mx-auto w-full">
+        
+        <!-- Вкладка 1: Мастерская (и все остальные, кроме Ресурсов) -->
+        <div id="master-content" class="content-tab">
+            <h1 class="text-3xl font-bold mb-4">Добро пожаловать в игру!</h1>
+            <p class="text-xl text-gray-400">Здесь будет располагаться основной игровой мир.</p>
         </div>
+
+        <!-- Вкладка 2: Ресурсы -->
+        <div id="resources-content" class="content-tab hidden">
+            <h1 class="text-3xl font-bold mb-6 text-blue-400">Добыча Ресурсов</h1>
+            <p class="text-lg text-gray-400 mb-8">Нажмите 3 раза, чтобы добыть 0.09 ресурса.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <!-- Добыча Дерева -->
+                <button class="gather-button bg-green-700 hover:bg-green-600 text-white" onclick="gatherResource('wood')">
+                    <i class="fas fa-tree"></i>
+                    <span>Дерево</span>
+                    <span class="text-sm mt-1 text-green-200">(+0.09 Дерева)</span>
+                </button>
+
+                <!-- Добыча Камня (дает Гвозди) -->
+                <button class="gather-button bg-gray-600 hover:bg-gray-500 text-white" onclick="gatherResource('stone')">
+                    <i class="fas fa-mountain"></i>
+                    <span>Камень</span>
+                    <span class="text-sm mt-1 text-gray-200">(+0.09 Гвоздей)</span>
+                </button>
+
+                <!-- Добыча Золотой Руды (дает Деньги) -->
+                <button class="gather-button bg-yellow-600 hover:bg-yellow-500 text-white" onclick="gatherResource('gold')">
+                    <i class="fas fa-gem"></i>
+                    <span>Золотая Руда</span>
+                    <span class="text-sm mt-1 text-yellow-200">(+0.09 Денег)</span>
+                </button>
+
+            </div>
+        </div>
+        
     </div>
 
     <!-- Нижняя навигационная панель (Панель управления) -->
@@ -120,7 +215,7 @@
                 <span>Поставки</span>
             </button>
             
-            <!-- НОВАЯ Кнопка: Ресурсы -->
+            <!-- Кнопка: Ресурсы -->
             <button class="nav-button" onclick="setActiveButton(this, 'Ресурсы')">
                 <i class="fas fa-gem"></i>
                 <span>Ресурсы</span>
@@ -130,7 +225,75 @@
     </footer>
 
     <script>
-        // Функция для симуляции активации кнопки и вывода сообщения
+        // 1. GLOBAL GAME STATE
+        let gameState = {
+            money: 0,
+            wood: 0,
+            nails: 0,
+            // Счётчики для реализации логики 3-х кликов
+            gatherClicks: {
+                wood: 0,
+                stone: 0,
+                gold: 0
+            }
+        };
+
+        // 2. RESOURCE DISPLAY UPDATE
+        // Обновляет отображение ресурсов на верхней панели
+        function updateResourceDisplay() {
+            // Используем toFixed(2) для красивого отображения дробных чисел
+            document.getElementById('money-display').textContent = gameState.money.toFixed(2);
+            document.getElementById('wood-display').textContent = gameState.wood.toFixed(2);
+            document.getElementById('nails-display').textContent = gameState.nails.toFixed(2);
+        }
+
+        // 3. RESOURCE GATHERING LOGIC
+        // Обрабатывает клики по кнопкам добычи
+        function gatherResource(type) {
+            gameState.gatherClicks[type]++;
+            const clickCount = gameState.gatherClicks[type];
+            
+            // Удалена переменная statusMessage и все, что с ней связано
+
+            if (clickCount % 3 === 0) {
+                // Успешная добыча (каждые 3 клика)
+                const amount = 0.09;
+                let targetResourceDisplayId = "";
+                
+                // Проверяем, какой ресурс добыт
+                if (type === 'wood') {
+                    // Используем Math.round для предотвращения ошибок с плавающей точкой
+                    gameState.wood = Math.round((gameState.wood + amount) * 100) / 100;
+                    targetResourceDisplayId = "wood-resource-display"; // Изменен ID для доступа к общему блоку
+                } else if (type === 'stone') {
+                    // Камень добывает Гвозди, как было запрошено
+                    gameState.nails = Math.round((gameState.nails + amount) * 100) / 100;
+                    targetResourceDisplayId = "nails-resource-display"; // Изменен ID для доступа к общему блоку
+                } else if (type === 'gold') {
+                    // Золотая руда добывает Деньги
+                    gameState.money = Math.round((gameState.money + amount) * 100) / 100;
+                    targetResourceDisplayId = "money-resource-display"; // Изменен ID для доступа к общему блоку
+                }
+                
+                // Анимация на панели ресурсов (Изменено: удалена обводка, добавлен более плавный эффект)
+                const display = document.getElementById(targetResourceDisplayId);
+                // Добавляем классы для плавного пульса/увеличения
+                display.classList.add('scale-110', 'bg-green-800/70'); 
+                
+                // Убираем классы после 400ms для плавного возврата
+                setTimeout(() => {
+                    display.classList.remove('scale-110', 'bg-green-800/70');
+                }, 400); 
+
+            } else {
+                // Обычный клик (Теперь ничего не происходит в окне статуса)
+            }
+            
+            updateResourceDisplay();
+        }
+
+        // 4. CONTENT SWITCHING
+        // Функция для симуляции активации кнопки и смены контента
         function setActiveButton(element, name) {
             // Удаляем класс 'active' со всех кнопок
             const buttons = document.querySelectorAll('.nav-button');
@@ -139,18 +302,33 @@
             // Добавляем класс 'active' к нажатой кнопке
             element.classList.add('active');
 
-            // Выводим сообщение о выборе
-            const statusMessage = document.getElementById('status-message');
-            statusMessage.textContent = `Вы выбрали: ${name}. Здесь будет открываться соответствующий экран.`;
-            statusMessage.classList.remove('text-green-400', 'text-yellow-400');
-            statusMessage.classList.add('text-yellow-400');
+            // Скрываем все контенты
+            document.querySelectorAll('.content-tab').forEach(tab => tab.classList.add('hidden'));
+            
+            // Показываем нужный контент
+            if (name === 'Ресурсы') {
+                document.getElementById('resources-content').classList.remove('hidden');
+            } else {
+                // Если выбран другой пункт (Мастерская, Склад, Поставки)
+                document.getElementById('master-content').classList.remove('hidden');
+            }
+            
+            updateResourceDisplay();
         }
 
-        // Установка начального активного состояния при загрузке
+        // Установка начального состояния при загрузке
         window.onload = function() {
+            // Чтобы анимация работала, блокам ресурсов нужны уникальные ID (хотя они уже в разметке, это для надежности)
+            document.getElementById('money-display').parentNode.id = 'money-resource-display';
+            document.getElementById('wood-display').parentNode.id = 'wood-resource-display';
+            document.getElementById('nails-display').parentNode.id = 'nails-resource-display';
+            
+            // Инициализация отображения ресурсов
+            updateResourceDisplay(); 
+            
+            // Имитация клика по "Мастерской" для установки начального активного состояния
             const initialActive = document.querySelector('.nav-button.active');
             if (initialActive) {
-                // Имитируем клик, чтобы установить начальное сообщение
                 setActiveButton(initialActive, 'Мастерская'); 
             }
         };
