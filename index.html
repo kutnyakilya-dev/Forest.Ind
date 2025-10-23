@@ -236,7 +236,8 @@
         
         <!-- Шаг 1: Выбор ресурса и количества -->
         <div id="modal-step-1">
-            <label class="block text-sm font-medium text-gray-400 mb-2">Ресурс для продажи:</label>
+            <!-- Текст стал ярко-белым (text-gray-100) -->
+            <label class="block text-sm font-medium text-gray-100 mb-2">Ресурс для продажи:</label>
             <select id="listing-resource" class="w-full p-2 bg-dark-card border border-gray-600 rounded-lg text-gray-100 mb-4">
                 <option value="" disabled selected>-- Выберите ресурс --</option>
                 <option value="iron">Железо (Текущий: <span id="max-iron">0.00</span>)</option>
@@ -244,7 +245,8 @@
                 <option value="wool">Шерсть (Текущий: <span id="max-wool">0.00</span>)</option>
             </select>
 
-            <label class="block text-sm font-medium text-gray-400 mb-2">Количество: <span id="quantity-display">0.00</span></label>
+            <!-- Текст стал ярко-белым (text-gray-100) -->
+            <label class="block text-sm font-medium text-gray-100 mb-2">Количество: <span id="quantity-display">0.00</span></label>
             <input type="range" id="listing-quantity-slider" min="0" max="0" step="0.01" value="0" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer range-lg mb-4">
             <input type="number" id="listing-quantity-input" min="0" step="0.01" value="0.00" class="w-full p-2 bg-dark-card border border-gray-600 rounded-lg text-gray-100 mb-4">
 
@@ -255,7 +257,8 @@
 
         <!-- Шаг 2: Выбор типа сделки и цены -->
         <div id="modal-step-2" class="hidden">
-            <h4 class="text-xl font-semibold mb-3">Тип Сделки</h4>
+            <!-- Текст стал ярко-белым (text-gray-100) -->
+            <h4 class="text-xl font-semibold mb-3 text-gray-100">Тип Сделки</h4>
             
             <div class="flex space-x-4 mb-4">
                 <!-- Кнопка Продажа -->
@@ -269,12 +272,14 @@
             </div>
 
             <!-- Общая цена (для Продажи и Аукциона) -->
-            <label class="block text-sm font-medium text-gray-400 mb-2 mt-4" id="price-label">Цена за единицу (₽):</label>
+            <!-- Текст стал ярко-белым (text-gray-100) -->
+            <label class="block text-sm font-medium text-gray-100 mb-2 mt-4" id="price-label">Цена за единицу (₽):</label>
             <input type="number" id="listing-price" min="0.01" step="0.01" value="1.00" class="w-full p-2 bg-dark-card border border-gray-600 rounded-lg text-gray-100 mb-4">
             
             <!-- Дополнительные поля для Аукциона -->
             <div id="auction-fields" class="hidden border-t border-gray-700 pt-4 mt-4">
-                 <label class="block text-sm font-medium text-gray-400 mb-2">Продолжительность Аукциона после ставки (сек):</label>
+                 <!-- Текст стал ярко-белым (text-gray-100) -->
+                 <label class="block text-sm font-medium text-gray-100 mb-2">Продолжительность Аукциона после ставки (сек):</label>
                  <input type="number" id="auction-duration" min="5" step="1" value="30" class="w-full p-2 bg-dark-card border border-gray-600 rounded-lg text-gray-100 mb-4">
             </div>
 
@@ -319,87 +324,17 @@
         listings: [] // Array to hold active listings
     };
     
-    // --- Firebase Initialization and DB Functions (Imports are dynamic below) ---
+    // Global references for Firebase functions
+    let doc, collection, query, onSnapshot, setDoc, updateDoc, increment, addDoc, deleteDoc, getFirestore;
     
-    // Load user's private resources from Firestore
-    async function loadUserResources() {
-        if (!db || !userId) return;
+    // Global timer for auction updates
+    let auctionTimerInterval = null;
 
-        // Path: /artifacts/{appId}/users/{userId}/game_data/main_state
-        const docRef = doc(db, 'artifacts', appId, 'users', userId, 'game_data', 'main_state');
-        
-        onSnapshot(docRef, (doc) => {
-            if (doc.exists()) {
-                const data = doc.data();
-                gameState.money = data.money || 0;
-                gameState.resources.iron = data.resources?.iron || 0;
-                gameState.resources.wood = data.resources?.wood || 0;
-                gameState.resources.wool = data.resources?.wool || 0;
-            } else {
-                // If document does not exist, ensure initial save is run 
-                // to create the document with default values
-                saveUserResources();
-            }
-            updateUI();
-        }, (error) => {
-            console.error("Error listening to user data:", error);
-        });
-    }
 
-    // Function to save user resources (used after gathering/buying)
-    async function saveUserResources() {
-        if (!db || !userId) return;
-
-        // Path: /artifacts/{appId}/users/{userId}/game_data/main_state
-        const docRef = doc(db, 'artifacts', appId, 'users', userId, 'game_data', 'main_state');
-        const dataToSave = {
-            money: gameState.money,
-            resources: gameState.resources
-        };
-
-        try {
-            await setDoc(docRef, dataToSave, { merge: true });
-        } catch (e) {
-            console.error("Error saving document: ", e);
-        }
-    }
-
-    // Load public trade listings from Firestore
-    function loadListings() {
-        if (!db || !userId) return;
-
-        // Path: /artifacts/{appId}/public/data/listings
-        const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'listings'));
-
-        onSnapshot(q, (snapshot) => {
-            const freshListings = [];
-            snapshot.forEach((doc) => {
-                const data = doc.data();
-                freshListings.push({
-                    id: doc.id,
-                    ...data,
-                    // Convert Firestore timestamps to JS Date objects for easy comparison
-                    listingTime: data.listingTime ? data.listingTime.toDate() : new Date(0),
-                    lastBidTime: data.lastBidTime ? data.lastBidTime.toDate() : null
-                });
-            });
-            // Sort by newest first
-            gameState.listings = freshListings.sort((a, b) => b.listingTime.getTime() - a.listingTime.getTime()); 
-            renderListings();
-        }, (error) => {
-            console.error("Error listening to listings:", error);
-        });
-    }
-    
-    // --- Trading/Modal State ---
-    let currentListingType = null;
-    let currentListingResource = null;
-    let currentListingMax = 0;
-    
-    // --- UI and Core Logic Functions ---
+    // --- Core Logic Functions (Accessible globally via window) ---
 
     // Function to display custom alert (replacing alert())
-    function alertMessage(message, color = 'blue') {
+    window.alertMessage = (message, color = 'blue') => {
         const modal = document.createElement('div');
         const colorMap = {
             'blue': 'bg-primary-accent',
@@ -419,9 +354,7 @@
             modal.style.opacity = 0;
             setTimeout(() => modal.remove(), 500); // Remove after transition
         }, 3000);
-    }
-    window.alertMessage = alertMessage; 
-
+    };
 
     // Обновление всех элементов интерфейса
     function updateUI() {
@@ -431,10 +364,6 @@
         document.getElementById('resource-wood').textContent = gameState.resources.wood.toFixed(2);
         document.getElementById('resource-wool').textContent = gameState.resources.wool.toFixed(2);
         
-        if(userId) {
-            document.getElementById('user-id-display').textContent = userId;
-        }
-
         // 2. Обновление вкладки Ресурсы
         const selectionArea = document.getElementById('resource-selection-area');
         const gatheringArea = document.getElementById('resource-gathering-area');
@@ -453,8 +382,31 @@
             gatherButton.style.opacity = 0.5 + 0.5 * progress; 
         }
     }
+    
+    // --- Trading/Modal State ---
+    let currentListingType = null;
+    let currentListingResource = null;
+    let currentListingMax = 0;
+    
+    // --- DB Wrappers (Must be called after Firebase is initialized) ---
+    async function saveUserResources() {
+        if (!db || !userId) return;
 
-    // Обработка выбора ресурса (одноразово)
+        // Path: /artifacts/{appId}/users/{userId}/game_data/main_state
+        const docRef = doc(db, 'artifacts', appId, 'users', userId, 'game_data', 'main_state');
+        const dataToSave = {
+            money: gameState.money,
+            resources: gameState.resources
+        };
+
+        try {
+            await setDoc(docRef, dataToSave, { merge: true });
+        } catch (e) {
+            console.error("Error saving document: ", e);
+        }
+    }
+
+    // --- Resources Page Logic ---
     window.selectResource = (resource) => {
         if (gameState.selectedResource) {
             return;
@@ -477,7 +429,6 @@
         window.showPage('resources', document.querySelector('[onclick*="resources"]'));
     };
 
-    // Обработка клика по кнопке добычи
     window.gatherResource = () => {
         if (!gameState.selectedResource) return;
 
@@ -502,10 +453,42 @@
         updateUI();
     };
 
-    // --- Modal Control ---
+    // --- Navigation Logic ---
+    window.showPage = (pageId, clickedButton) => {
+        document.querySelectorAll('.page').forEach(page => {
+            page.style.display = 'none';
+        });
 
-    function openListingModal() {
-        if (!gameState.userId) {
+        const targetPage = document.getElementById(`page-${pageId}`);
+        if (targetPage) {
+            targetPage.style.display = 'block';
+            document.getElementById('content-area').scrollTop = 0;
+
+            document.querySelectorAll('.nav-item').forEach(button => {
+                button.classList.remove('active-tab', 'text-primary-accent');
+                button.classList.add('text-gray-400');
+                const svg = button.querySelector('svg');
+                const span = button.querySelector('span');
+                if (svg) { svg.classList.remove('text-primary-accent'); svg.classList.add('text-gray-400'); }
+                if (span) { span.classList.remove('text-primary-accent'); span.classList.add('text-gray-400'); }
+            });
+
+            if (clickedButton) {
+                clickedButton.classList.add('active-tab', 'text-primary-accent');
+                clickedButton.classList.remove('text-gray-400');
+                const svg = clickedButton.querySelector('svg');
+                const span = clickedButton.querySelector('span');
+                if (svg) { svg.classList.add('text-primary-accent'); svg.classList.remove('text-gray-400'); }
+                if (span) { span.classList.add('text-primary-accent'); span.classList.remove('text-gray-400'); }
+            }
+        }
+    };
+
+
+    // --- Modal Control Functions (Globally accessible) ---
+
+    window.openListingModal = () => {
+        if (!userId) {
             alertMessage("Дождитесь загрузки данных игрока.", 'red');
             return;
         }
@@ -531,13 +514,16 @@
         document.getElementById('type-auction-btn').classList.remove('ring-4', 'ring-green-400');
         document.getElementById('auction-fields').classList.add('hidden');
 
-        // Set up event listeners for quantity (moved to DOMContentLoaded to avoid duplicates)
+        // Reset step 1 validity (important for slider/input logic)
+        currentListingMax = 0;
+        document.getElementById('listing-quantity-slider').max = 0;
+        checkStep1Validity();
         
         nextListingStep(1); // Go to step 1
         document.getElementById('listing-modal').classList.remove('hidden');
     }
 
-    function closeListingModal() {
+    window.closeListingModal = () => {
         document.getElementById('listing-modal').classList.add('hidden');
     }
 
@@ -568,7 +554,7 @@
         nextBtn.disabled = !isValid;
     }
 
-    function nextListingStep(step) {
+    window.nextListingStep = (step) => {
         document.getElementById('modal-step-1').classList.add('hidden');
         document.getElementById('modal-step-2').classList.add('hidden');
         document.getElementById('modal-title').textContent = (step === 1) ? "Выбор Ресурса" : "Параметры Сделки";
@@ -581,7 +567,7 @@
         checkCreateListingValidity();
     }
     
-    function setListingType(type) {
+    window.setListingType = (type) => {
         currentListingType = type;
         const saleBtn = document.getElementById('type-sale-btn');
         const auctionBtn = document.getElementById('type-auction-btn');
@@ -595,7 +581,7 @@
             saleBtn.classList.add('ring-4', 'ring-green-400');
             auctionFields.classList.add('hidden');
             priceLabel.textContent = "Цена за единицу (₽):";
-        } else if (type === 'auction') {
+        } else if (currentListingType === 'auction') {
             auctionBtn.classList.add('ring-4', 'ring-green-400');
             auctionFields.classList.remove('hidden');
             priceLabel.textContent = "Стартовая цена за единицу (₽):";
@@ -618,21 +604,22 @@
         createBtn.disabled = !isValid;
     }
     
-    // --- Trading Logic ---
+    // --- Trading Logic (Globally accessible) ---
     
     // Renders active listings on the Supplies page
     function renderListings() {
         const container = document.getElementById('listings-container');
         container.innerHTML = '';
-        document.getElementById('no-listings').classList.add('hidden');
+        const noListingsP = document.getElementById('no-listings');
+        if (noListingsP) noListingsP.classList.add('hidden');
 
         if (gameState.listings.length === 0) {
-             document.getElementById('no-listings').classList.remove('hidden');
+             if (noListingsP) noListingsP.classList.remove('hidden');
              return;
         }
 
         gameState.listings.forEach(listing => {
-            const isSeller = listing.sellerId === gameState.userId;
+            const isSeller = listing.sellerId === userId;
             const isAuction = listing.type === 'auction';
             const priceOrBid = isAuction 
                 ? listing.currentBid > 0 ? listing.currentBid.toFixed(2) : (listing.startPrice * listing.quantity).toFixed(2)
@@ -644,8 +631,7 @@
             const elapsedTime = Date.now() - listing.listingTime.getTime();
             
             if (elapsedTime > hourExpiration && listing.currentBid === 0) {
-                // Should return to seller. Since we can't run server timers, 
-                // we trigger the return on the seller's client if they view it after 1 hour.
+                // If the seller views their expired, unsold listing, remove it and refund.
                 if (isSeller) {
                     removeListing(listing.id, listing.resource, listing.quantity, true);
                 }
@@ -656,30 +642,37 @@
             let auctionStatus = '';
             let timeLeftDisplay = '';
             let canBid = true;
+            let auctionFinished = false;
 
-            if (isAuction && listing.currentBidderId) {
-                const auctionDurationMs = listing.auctionDuration * 1000;
-                const timeSinceLastBid = Date.now() - listing.lastBidTime.getTime();
-                const timeLeftMs = auctionDurationMs - timeSinceLastBid;
-                
-                if (timeLeftMs > 0) {
-                    const seconds = Math.ceil(timeLeftMs / 1000);
-                    timeLeftDisplay = `(Таймер: ${seconds}с)`;
-                    auctionStatus = 'text-yellow-400 font-bold';
+            if (isAuction) {
+                if (listing.currentBidderId) {
+                    // Active bid: Initial display, real-time update handled by updateAuctionTimers
+                    const auctionDurationMs = listing.auctionDuration * 1000;
+                    const timeSinceLastBid = Date.now() - listing.lastBidTime.getTime();
+                    const timeLeftMs = auctionDurationMs - timeSinceLastBid;
+                    
+                    if (timeLeftMs <= 0) {
+                         timeLeftDisplay = `(Завершена)`;
+                         auctionStatus = 'text-red-500 font-bold';
+                         canBid = false;
+                         auctionFinished = true;
+                    } else {
+                         // Initial value (will be overwritten by interval immediately)
+                         timeLeftDisplay = `(Таймер: --:--)`; 
+                         auctionStatus = 'text-yellow-400 font-bold';
+                    }
                 } else {
-                    timeLeftDisplay = `(Завершена)`;
-                    auctionStatus = 'text-red-500 font-bold';
-                    canBid = false;
+                    // No bids yet
+                    if (elapsedTime > hourExpiration) {
+                         auctionStatus = 'text-red-500 italic';
+                         timeLeftDisplay = '(Срок листинга истёк)';
+                         canBid = false;
+                         auctionFinished = true; // Auction considered failed if no bid after 1 hour
+                     } else {
+                         auctionStatus = 'text-green-400';
+                         timeLeftDisplay = `(Ожидание ставки)`;
+                     }
                 }
-            } else if (isAuction) {
-                 if (elapsedTime > hourExpiration) {
-                     auctionStatus = 'text-red-500 italic';
-                     timeLeftDisplay = '(Срок листинга истёк)';
-                     canBid = false;
-                 } else {
-                     auctionStatus = 'text-green-400';
-                     timeLeftDisplay = `(Ожидание ставки)`;
-                 }
             }
             
             
@@ -689,34 +682,71 @@
                 <div class="mb-3 sm:mb-0">
                     <p class="text-xl font-bold text-primary-accent">${resourceMap[listing.resource]} x ${listing.quantity.toFixed(2)}</p>
                     <p class="text-xs text-gray-500 mb-1">${isSeller ? 'Ваше предложение' : `Продавец ID: ${listing.sellerId}`}</p>
-                    <p class="text-sm text-gray-300">Тип: <span class="${isAuction ? 'text-purple-400' : 'text-green-400'}">${isAuction ? 'Аукцион' : 'Продажа'}</span> <span class="${auctionStatus}">${timeLeftDisplay}</span></p>
+                    <p class="text-sm text-gray-300">Тип: <span class="${isAuction ? 'text-purple-400' : 'text-green-400'}">${isAuction ? 'Аукцион' : 'Продажа'}</span> <span id="timer-${listing.id}" class="${auctionStatus}">${timeLeftDisplay}</span></p>
                     <p class="text-md text-yellow-400 mt-1">${priceLabel}: <span class="font-extrabold">₽${priceOrBid}</span></p>
                 </div>
                 <div class="w-full sm:w-auto mt-2 sm:mt-0">
                     ${!isSeller && !isAuction ? 
+                        // Sale: Buy Button
                         `<button onclick="buyListing('${listing.id}', ${listing.price * listing.quantity})" class="w-full sm:w-auto py-2 px-4 bg-green-600 hover:bg-green-500 rounded-lg font-bold text-sm transform active:scale-95">КУПИТЬ</button>` :
-                    !isSeller && isAuction && canBid ?
+                    !isSeller && isAuction && canBid && listing.currentBidderId !== userId ?
+                        // Auction: Bid Button (if not the current highest bidder)
                         `<button onclick="openBidModal('${listing.id}', ${listing.currentBid || listing.startPrice}, '${listing.resource}', ${listing.quantity})" class="w-full sm:w-auto py-2 px-4 bg-purple-600 hover:bg-purple-500 rounded-lg font-bold text-sm transform active:scale-95">СТАВКА</button>` :
-                    isSeller && isAuction && !canBid && listing.currentBid > 0 ?
+                    isSeller && isAuction && auctionFinished && listing.currentBid > 0 ?
                          // Resolve button for finished auction (seller action)
                         `<button onclick="resolveAuction('${listing.id}')" class="w-full sm:w-auto py-2 px-4 bg-red-600 hover:bg-red-500 rounded-lg font-bold text-sm transform active:scale-95">ЗАВЕРШИТЬ</button>` :
-                    isSeller ?
-                        // Remove button for seller
+                    isSeller && isAuction && auctionFinished && listing.currentBid === 0 ?
+                        // Remove button for failed auction (seller action)
+                        `<button onclick="removeListing('${listing.id}', '${listing.resource}', ${listing.quantity}, true)" class="w-full sm:w-auto py-2 px-4 bg-gray-600 hover:bg-gray-500 rounded-lg font-bold text-sm transform active:scale-95">ВЕРНУТЬ</button>` :
+                    isSeller && listing.type === 'sale' ?
+                        // Remove button for sale listing (seller action)
                         `<button onclick="removeListing('${listing.id}', '${listing.resource}', ${listing.quantity}, false)" class="w-full sm:w-auto py-2 px-4 bg-gray-600 hover:bg-gray-500 rounded-lg font-bold text-sm transform active:scale-95">СНЯТЬ</button>` : ''
                     }
                 </div>
             `;
             container.appendChild(listingElement);
-            
-            // Re-render periodically to update auction timer
-            if (isAuction && listing.currentBidderId && timeLeftMs > 0) {
-                setTimeout(renderListings, 1000); 
-            }
         });
     }
 
+    // New function to handle real-time timer updates
+    function updateAuctionTimers() {
+        let needsFullRender = false;
+        
+        // Filter for auctions that are currently running (have a bidder)
+        gameState.listings.filter(l => l.type === 'auction' && l.currentBidderId).forEach(listing => {
+            const timerElement = document.getElementById(`timer-${listing.id}`);
+            if (!timerElement) return;
 
-    async function createListing() {
+            const auctionDurationMs = listing.auctionDuration * 1000;
+            const timeSinceLastBid = Date.now() - listing.lastBidTime.getTime();
+            let timeLeftMs = auctionDurationMs - timeSinceLastBid;
+            
+            if (timeLeftMs <= 0) {
+                timeLeftMs = 0;
+                timerElement.textContent = `(Завершена)`;
+                timerElement.classList.remove('text-yellow-400', 'text-green-400');
+                timerElement.classList.add('text-red-500', 'font-bold');
+                // Flag to trigger a full re-render after timer runs out to update action buttons
+                needsFullRender = true; 
+            } else {
+                const totalSeconds = Math.ceil(timeLeftMs / 1000);
+                const minutes = Math.floor(totalSeconds / 60);
+                const seconds = totalSeconds % 60;
+                
+                timerElement.textContent = `(Таймер: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')})`;
+                timerElement.classList.add('text-yellow-400', 'font-bold');
+                timerElement.classList.remove('text-red-500');
+            }
+        });
+        
+        if (needsFullRender) {
+            // This ensures buttons like "ЗАВЕРШИТЬ" appear instantly when timer hits zero
+            renderListings(); 
+        }
+    }
+
+
+    window.createListing = async () => {
         if (!db || !userId || !currentListingType) return;
         
         const resource = currentListingResource;
@@ -761,7 +791,7 @@
     }
     
     // Function to handle the "BUY" action (for Sale listings)
-    async function buyListing(listingId, totalCost) {
+    window.buyListing = async (listingId, totalCost) => {
         if (!db || !userId || gameState.money < totalCost) {
             alertMessage("Недостаточно средств для покупки!", 'red');
             return;
@@ -796,8 +826,8 @@
         }
     }
     
-    // Function to handle the "REMOVE" action (for Seller)
-    async function removeListing(listingId, resource, quantity, isExpiredReturn) {
+    // Function to handle the "REMOVE/REFUND" action (for Seller)
+    window.removeListing = async (listingId, resource, quantity, isExpiredReturn) => {
         if (!db || !userId) return;
 
         const listingRef = doc(db, 'artifacts', appId, 'public', 'data', 'listings', listingId);
@@ -822,11 +852,10 @@
         }
     }
     
-    function openBidModal(listingId, currentBid, resource, quantity) {
+    window.openBidModal = (listingId, currentBid, resource, quantity) => {
         if (!db || !userId) return;
-        const minBid = currentBid + 0.01;
         const currentListing = gameState.listings.find(l => l.id === listingId);
-
+        
         // Calculate total cost for the whole quantity
         const currentTotal = currentListing.currentBid > 0 ? currentListing.currentBid : currentListing.startPrice * currentListing.quantity;
         const minTotalBid = currentTotal + 0.01;
@@ -886,10 +915,11 @@
         } catch (e) {
             console.error("Error placing bid:", e);
             alertMessage("Ошибка при размещении ставки.", 'red');
+            // NOTE: In a real app, rollback transactions would be needed here.
         }
     }
     
-    async function resolveAuction(listingId) {
+    window.resolveAuction = async (listingId) => {
         const listing = gameState.listings.find(l => l.id === listingId);
         if (!listing || listing.type !== 'auction' || listing.sellerId !== userId) return;
 
@@ -937,23 +967,24 @@
             
             const { initializeApp } = firebaseAppModule;
             const { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } = firebaseAuthModule;
-            const { getFirestore, collection, query, onSnapshot, doc, setDoc, updateDoc, increment, addDoc, deleteDoc } = firebaseFirestoreModule;
+            const firestore = firebaseFirestoreModule;
+            
+            // Assign imported functions to global references
+            getFirestore = firestore.getFirestore; // Added missing import
+            doc = firestore.doc;
+            collection = firestore.collection;
+            query = firestore.query;
+            onSnapshot = firestore.onSnapshot;
+            setDoc = firestore.setDoc;
+            updateDoc = firestore.updateDoc;
+            increment = firestore.increment;
+            addDoc = firestore.addDoc;
+            deleteDoc = firestore.deleteDoc;
             
             // Initialize services
             app = initializeApp(firebaseConfig);
             db = getFirestore(app);
             auth = getAuth(app);
-            
-            // Expose DB functions globally for code readability in functions above
-            window.doc = firebaseFirestoreModule.doc;
-            window.collection = firebaseFirestoreModule.collection;
-            window.query = firebaseFirestoreModule.query;
-            window.onSnapshot = firebaseFirestoreModule.onSnapshot;
-            window.setDoc = firebaseFirestoreModule.setDoc;
-            window.updateDoc = firebaseFirestoreModule.updateDoc;
-            window.increment = firebaseFirestoreModule.increment;
-            window.addDoc = firebaseFirestoreModule.addDoc;
-            window.deleteDoc = firebaseFirestoreModule.deleteDoc;
             
             // Authentication
             const userStatePromise = new Promise(resolve => {
@@ -978,12 +1009,73 @@
 
             await userStatePromise;
             
+            // FIX: Update UI immediately after auth is ready to show the user ID
+            if (userId) {
+                document.getElementById('user-id-display').textContent = userId;
+            }
+
             // Start listeners after authentication is complete
             loadUserResources();
             loadListings();
+            
+            // Start global auction timer
+            if (auctionTimerInterval) {
+                clearInterval(auctionTimerInterval);
+            }
+            auctionTimerInterval = setInterval(updateAuctionTimers, 1000);
         }
 
+        // --- DB Listener Functions (Defined within DOMContentLoaded to ensure DB functions are ready) ---
+        function loadUserResources() {
+            if (!db || !userId) return;
 
+            // Path: /artifacts/{appId}/users/{userId}/game_data/main_state
+            const docRef = doc(db, 'artifacts', appId, 'users', userId, 'game_data', 'main_state');
+            
+            onSnapshot(docRef, (doc) => {
+                if (doc.exists()) {
+                    const data = doc.data();
+                    gameState.money = data.money || 0;
+                    gameState.resources.iron = data.resources?.iron || 0;
+                    gameState.resources.wood = data.resources?.wood || 0;
+                    gameState.resources.wool = data.resources?.wool || 0;
+                } else {
+                    // If document does not exist, ensure initial save is run 
+                    // to create the document with default values (0 resources, 0 money)
+                    saveUserResources();
+                }
+                updateUI();
+            }, (error) => {
+                console.error("Error listening to user data:", error);
+            });
+        }
+
+        function loadListings() {
+            if (!db || !userId) return;
+
+            // Path: /artifacts/{appId}/public/data/listings
+            const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'listings'));
+
+            onSnapshot(q, (snapshot) => {
+                const freshListings = [];
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    freshListings.push({
+                        id: doc.id,
+                        ...data,
+                        // Convert Firestore timestamps to JS Date objects for easy comparison
+                        listingTime: data.listingTime ? data.listingTime.toDate() : new Date(0),
+                        lastBidTime: data.lastBidTime ? data.lastBidTime.toDate() : null
+                    });
+                });
+                // Sort by newest first
+                gameState.listings = freshListings.sort((a, b) => b.listingTime.getTime() - a.listingTime.getTime()); 
+                renderListings();
+            }, (error) => {
+                console.error("Error listening to listings:", error);
+            });
+        }
+        
         // --- UI Setup ---
         // Setup for slider/input sync (using factor of 100 to handle floats)
         const slider = document.getElementById('listing-quantity-slider');
@@ -1009,6 +1101,11 @@
             checkStep1Validity();
         };
 
+        // Price/Duration sync
+        document.getElementById('listing-price').oninput = checkCreateListingValidity;
+        document.getElementById('auction-duration').oninput = checkCreateListingValidity;
+
+
         // Initial page load
         const initialButton = document.querySelector('.nav-item.active-tab');
         if (initialButton) {
@@ -1020,37 +1117,6 @@
         
         updateUI();
     });
-    
-    // Function for page switching (must be outside DOMContentLoaded to be global)
-    window.showPage = (pageId, clickedButton) => {
-        document.querySelectorAll('.page').forEach(page => {
-            page.style.display = 'none';
-        });
-
-        const targetPage = document.getElementById(`page-${pageId}`);
-        if (targetPage) {
-            targetPage.style.display = 'block';
-            document.getElementById('content-area').scrollTop = 0;
-
-            document.querySelectorAll('.nav-item').forEach(button => {
-                button.classList.remove('active-tab', 'text-primary-accent');
-                button.classList.add('text-gray-400');
-                const svg = button.querySelector('svg');
-                const span = button.querySelector('span');
-                if (svg) { svg.classList.remove('text-primary-accent'); svg.classList.add('text-gray-400'); }
-                if (span) { span.classList.remove('text-primary-accent'); span.classList.add('text-gray-400'); }
-            });
-
-            if (clickedButton) {
-                clickedButton.classList.add('active-tab', 'text-primary-accent');
-                clickedButton.classList.remove('text-gray-400');
-                const svg = clickedButton.querySelector('svg');
-                const span = clickedButton.querySelector('span');
-                if (svg) { svg.classList.add('text-primary-accent'); svg.classList.remove('text-gray-400'); }
-                if (span) { span.classList.add('text-primary-accent'); span.classList.remove('text-gray-400'); }
-            }
-        }
-    };
 </script>
 
 </body>
