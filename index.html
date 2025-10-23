@@ -3,1139 +3,739 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Бизнес-Симулятор</title>
-    <!-- Подключение Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'dark-bg': '#121212',
-                        'dark-card': '#1e1e1e',
-                        'dark-surface': '#2c2c2c',
-                        'primary-accent': '#3b82f6', // blue-500
-                        'primary-hover': '#2563eb', // blue-600
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                }
+    <title>Smartphone Studio - 3D Игра</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- Подключаем three.js для 3D графики -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        /* Базовый сброс и стили для мобильных устройств */
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1f1c2c 0%, #000000 100%);
+            color: #ffffff;
+            display: flex;
+            justify-content: center; /* Центр в портрете */
+            align-items: center;
+            min-height: 100vh;
+            text-align: center;
+            transition: all 0.3s ease;
+            overflow: hidden; /* Скрываем полосы прокрутки */
+        }
+
+        /* Основной контейнер приложения (для Flexbox) */
+        #appContainer {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* ----------------------------------- */
+        /* Стили для Меню (Портрет) */
+        /* ----------------------------------- */
+        .menu-container {
+            width: 90%;
+            max-width: 400px;
+            padding: 0;
+            background-color: transparent;
+            box-shadow: none;
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: #ffcc00; 
+            text-shadow: 0 0 10px rgba(255, 204, 0, 0.8);
+            margin-bottom: 40px;
+            letter-spacing: 2px;
+            transition: font-size 0.3s, margin 0.3s;
+        }
+
+        /* Стили для кнопок */
+        .menu-button {
+            display: block;
+            width: 100%;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            cursor: pointer;
+            border: none;
+            border-radius: 12px;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 5px 0 0 rgba(0, 0, 0, 0.3);
+            letter-spacing: 1px;
+            outline: none;
+        }
+
+        /* Цвета кнопок */
+        #newGameBtn { background-color: #4CAF50; color: white; border-bottom: 5px solid #388E3C; }
+        #settingsBtn { background-color: #2196F3; color: white; border-bottom: 5px solid #1976D2; }
+        #exitBtn { background-color: #F44336; color: white; border-bottom: 5px solid #D32F2F; }
+        .menu-button:active { transform: translateY(3px); box-shadow: 0 2px 0 0 rgba(0, 0, 0, 0.3); opacity: 0.9; }
+        .menu-button:hover { opacity: 0.9; }
+
+        /* ----------------------------------- */
+        /* Стили для 3D Игры */
+        /* ----------------------------------- */
+        #gameContainer {
+            width: 100%;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: none; /* Скрыт по умолчанию */
+            cursor: grab; /* Курсор для ПК */
+        }
+        
+        #gameContainer.looking {
+            cursor: grabbing;
+        }
+
+        #gameContainer canvas {
+            display: block;
+        }
+        
+        /* ----------------------------------- */
+        /* Виртуальный Джойстик (Один, слева) */
+        /* ----------------------------------- */
+        #mobileControls {
+            position: fixed;
+            bottom: 10px;
+            left: 10px; /* СЛЕВА */
+            z-index: 100;
+            display: none; /* Скрыт по умолчанию */
+            opacity: 0.85;
+            pointer-events: none; 
+        }
+
+        .joystick-pad {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            margin: 0; /* Убрали лишние отступы */
+            position: relative;
+            display: inline-block;
+            pointer-events: auto; 
+            touch-action: none; 
+        }
+
+        .joystick-thumb {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.6);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* ----------------------------------- */
+        /* ОПТИМИЗАЦИЯ ДЛЯ ГОРИЗОНТАЛЬНОЙ ОРИЕНТАЦИИ (ЛАНДШАФТ) */
+        /* ----------------------------------- */
+        @media (orientation: landscape) and (max-width: 900px) {
+            #appContainer {
+                justify-content: flex-start;
+                padding: 0;
+            }
+
+            .menu-container {
+                /* Смещаем меню влево */
+                width: 280px;
+                max-width: 280px;
+                min-height: 100vh;
+                padding: 30px 20px;
+                text-align: left;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: flex-start;
+            }
+            
+            h1 {
+                font-size: 2rem;
+                margin-bottom: 30px;
+                text-align: left;
+            }
+
+            .menu-button {
+                width: 95%;
+                padding: 12px 15px;
+                font-size: 1.1rem;
+                margin-bottom: 15px;
+            }
+            
+            #gameContainer {
+                /* Игра занимает оставшееся место справа */
+                position: relative;
+                width: calc(100% - 280px);
+                height: 100vh;
+            }
+            
+            /* Джойстик показывается только в игре и в ландшафте */
+            #mobileControls.game-active {
+                display: flex;
             }
         }
-    </script>
-    <style>
-        /* Стиль для обеспечения полноэкранного режима на мобильных устройствах */
-        html, body {
-            height: 100%;
-            overflow: hidden; /* Предотвращаем прокрутку основного экрана */
-            font-family: 'Inter', sans-serif;
+        
+        /* Стили для модального окна */
+        .message-box {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.7); display: none; 
+            justify-content: center; align-items: center; z-index: 1000;
         }
-        #app-container {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            background-color: #121212;
-            color: #e0e0e0;
+        .message-content {
+            background-color: #1f1c2c; padding: 30px; border-radius: 15px;
+            max-width: 80%; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            border: 2px solid #ffcc00;
         }
-        /* Стили для скроллируемой области контента */
-        #content-area {
-            flex-grow: 1;
-            overflow-y: auto;
-            padding-bottom: 72px; /* Учитываем высоту нижнего меню */
-        }
-        /* Анимация для смены страниц */
-        .page {
-            display: none;
-            animation: fadeIn 0.3s ease-in-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .active-tab {
-            color: #3b82f6; /* Акцентный цвет для активной вкладки */
-            border-top: 2px solid #3b82f6;
-        }
-        /* Скрываем полосу прокрутки для лучшей мобильной эстетики */
-        #content-area::-webkit-scrollbar {
-            display: none;
-        }
-        #content-area {
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
-        }
-        /* Custom styles for resource boxes */
-        .resource-box {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 8px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
-            transition: all 0.2s;
-        }
-        /* Стили для ползунка */
-        #listing-quantity-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: #3b82f6;
-            cursor: pointer;
-            box-shadow: 0 0 2px #fff;
-        }
-        #listing-quantity-slider::-moz-range-thumb {
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: #3b82f6;
-            cursor: pointer;
-            box-shadow: 0 0 2px #fff;
+        .message-content p { font-size: 1.1rem; margin-bottom: 20px; }
+        .message-content button {
+            background-color: #ffcc00; color: #000000; padding: 10px 20px;
+            border: none; border-radius: 8px; font-weight: 700; cursor: pointer;
+            transition: background-color 0.1s;
         }
     </style>
 </head>
 <body>
-<!-- Красный баннер для отображения статуса загрузки данных игрока -->
-<div id="loading-banner" class="fixed top-0 left-0 right-0 z-50 p-2 text-center bg-red-700 text-white font-bold">
-    Дождитесь загрузки данных игрока.
-</div>
 
-<div id="app-container">
-    <!-- Header/Top Bar с ресурсами -->
-    <header class="bg-dark-surface p-3 shadow-2xl fixed top-0 left-0 right-0 z-10 border-b border-gray-800" style="margin-top: 2.5rem;">
-        <div id="resources-display" class="grid grid-cols-4 gap-3 text-center text-xs">
-            <!-- Деньги (Money) -->
-            <div class="resource-box bg-dark-card border-b-4 border-yellow-500">
-                <span class="text-xs text-yellow-400">Баланс</span>
-                <div class="flex items-center justify-center mt-0.5">
-                    <span class="text-lg text-yellow-400 font-extrabold mr-1">₽</span> 
-                    <span id="money-amount" class="text-lg font-extrabold text-gray-100">0.00</span>
-                </div>
-            </div>
-            <!-- Железо (Iron) -->
-            <div class="resource-box bg-dark-card border-b-4 border-red-600">
-                <span class="text-xs text-gray-300">Железо</span>
-                <span id="resource-iron" class="text-lg font-extrabold mt-0.5 text-red-400">0.00</span>
-            </div>
-            <!-- Дерево (Wood) -->
-            <div class="resource-box bg-dark-card border-b-4 border-yellow-700">
-                <span class="text-xs text-gray-300">Дерево</span>
-                <span id="resource-wood" class="text-lg font-extrabold mt-0.5 text-yellow-500">0.00</span>
-            </div>
-            <!-- Шерсть (Wool) -->
-            <div class="resource-box bg-dark-card border-b-4 border-gray-500">
-                <span class="text-xs text-gray-300">Шерсть</span>
-                <span id="resource-wool" class="text-lg font-extrabold mt-0.5 text-gray-200">0.00</span>
-            </div>
-        </div>
-    </header>
-
-    <!-- Content Area (Scrollable) -->
-    <main id="content-area" class="mt-[9.5rem] p-4">
-
-        <!-- 1. Ресурсы (Resources) -->
-        <div id="page-resources" class="page p-2">
-            <h2 class="text-2xl font-semibold mb-4 text-gray-100">Добыча Ресурсов</h2>
-            
-            <!-- Область выбора ресурса (видна до выбора) -->
-            <div id="resource-selection-area" class="bg-dark-card p-4 rounded-xl shadow-xl border border-gray-700 mb-4">
-                <h3 class="text-lg font-medium text-primary-accent mb-4 text-center">Выберите, что будете добывать (Один раз)</h3>
-                <div class="flex flex-col space-y-3">
-                    <!-- Кнопки выбора с улучшенным стилем -->
-                    <button onclick="selectResource('iron')" data-resource-name="Железо" class="resource-option w-full py-4 text-xl bg-red-800/70 hover:bg-red-700 transition duration-150 rounded-xl font-extrabold shadow-lg shadow-red-900/40 transform active:scale-95">
-                        Железо
-                    </button>
-                    <button onclick="selectResource('wood')" data-resource-name="Дерево" class="resource-option w-full py-4 text-xl bg-yellow-800/70 hover:bg-yellow-700 transition duration-150 rounded-xl font-extrabold shadow-lg shadow-yellow-900/40 transform active:scale-95">
-                        Дерево
-                    </button>
-                    <button onclick="selectResource('wool')" data-resource-name="Шерсть" class="resource-option w-full py-4 text-xl bg-gray-600/70 hover:bg-gray-500 transition duration-150 rounded-xl font-extrabold shadow-lg shadow-gray-900/40 transform active:scale-95">
-                        Шерсть
-                    </button>
-                </div>
-            </div>
-
-            <!-- Область добычи (видна после выбора) -->
-            <div id="resource-gathering-area" class="bg-dark-card p-6 rounded-xl shadow-xl border border-gray-700 text-center hidden">
-                <p id="gathering-info" class="text-gray-400 text-lg mb-4">
-                    Нажмите <span class="font-bold text-yellow-400">3 раза</span>, чтобы добыть <span class="font-bold text-green-400">0.03</span> 
-                    <span id="current-resource-name" class="font-bold text-primary-accent text-xl">...</span>
-                </p>
-                <button id="gather-button" onclick="gatherResource()" class="w-full py-6 bg-primary-accent hover:bg-primary-hover rounded-xl font-extrabold text-3xl transition duration-150 shadow-2xl shadow-primary-accent/50 transform active:scale-95">
-                    Клик (0/3)
-                </button>
-            </div>
-        </div>
-
-        <!-- 2. Производство (Production) -->
-        <div id="page-production" class="page p-2">
-            <h2 class="text-2xl font-semibold mb-4 text-gray-100">Производственные Линии</h2>
-            <div class="bg-dark-card p-6 rounded-lg shadow-lg border border-gray-700 text-center">
-                <p class="text-gray-400 text-lg">Управление производственными циклами и мощностями.</p>
-            </div>
-        </div>
-
-        <!-- 3. Поставки (Supplies) - РЫНОК -->
-        <div id="page-supplies" class="page p-2">
-            <h2 class="text-2xl font-semibold mb-4 text-gray-100">Рынок и Поставки</h2>
-            
-            <!-- Кнопка для создания листинга -->
-            <button onclick="window.openListingModal()" class="w-full py-3 mb-4 bg-green-600 hover:bg-green-500 rounded-xl font-extrabold text-xl transition duration-150 shadow-lg shadow-green-900/40 transform active:scale-95">
-                + Поставить Ресурс на Рынок
-            </button>
-            
-            <!-- Контейнер для активных листингов -->
-            <h3 class="text-xl font-semibold mb-3 text-gray-200">Активные Предложения</h3>
-            <div id="listings-container" class="space-y-4">
-                <p class="text-gray-500 italic" id="no-listings">Нет активных предложений.</p>
-                <p class="text-gray-400 text-sm mt-2">Ваш ID: <span id="user-id-display" class="font-mono text-primary-accent">Загрузка...</span></p>
-            </div>
-        </div>
-
-        <!-- 4. Склад (Warehouse) -->
-        <div id="page-warehouse" class="page p-2">
-            <h2 class="text-2xl font-semibold mb-4 text-gray-100">Складские Запасы</h2>
-            <div class="bg-dark-card p-6 rounded-lg shadow-lg border border-gray-700 text-center">
-                <p class="text-gray-400 text-lg">Просмотр и управление текущими запасами сырья и продукции.</p>
-            </div>
-        </div>
-
-    </main>
-
-    <!-- Navigation Bar (Fixed Footer) -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-dark-surface border-t border-gray-700 flex justify-around p-2 shadow-2xl z-20">
-        
-        <!-- Кнопка 1: Производство (Production) -->
-        <button onclick="window.showPage('production', this)" class="nav-item flex flex-col items-center p-2 rounded-lg transition duration-200 text-gray-400 active-tab">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-cog text-primary-accent"><path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"/><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="m2 12h2"/><path d="m20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
-            <span class="text-xs mt-1 text-primary-accent">Производство</span>
-        </button>
-
-        <!-- Кнопка 2: Поставки (Supplies) -->
-        <button onclick="window.showPage('supplies', this)" class="nav-item flex flex-col items-center p-2 rounded-lg transition duration-200 text-gray-400">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-truck"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M19 18h2a1 1 0 0 0 1-1v-5a1 1 0 0 0-1-1h-1V6a2 2 0 0 0-2-2h-3v8"/><circle cx="5" cy="18" r="2"/><path d="M10 18h6"/><circle cx="17" cy="18" r="2"/></svg>
-            <span class="text-xs mt-1">Поставки</span>
-        </button>
-
-        <!-- Кнопка 3: Склад (Warehouse) -->
-        <button onclick="window.showPage('warehouse', this)" class="nav-item flex flex-col items-center p-2 rounded-lg transition duration-200 text-gray-400">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-archive"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
-            <span class="text-xs mt-1">Склад</span>
-        </button>
-        
-        <!-- Кнопка 4: Ресурсы (Resources) -->
-        <button onclick="window.showPage('resources', this)" class="nav-item flex flex-col items-center p-2 rounded-lg transition duration-200 text-gray-400">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-database"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg>
-            <span class="text-xs mt-1">Ресурсы</span>
-        </button>
-    </nav>
-</div>
-
-<!-- Listing Modal (Hidden by default) -->
-<div id="listing-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 z-30 flex items-center justify-center p-4" onclick="if(event.target.id === 'listing-modal') window.closeListingModal()">
-    <div class="bg-dark-surface rounded-xl shadow-2xl w-full max-w-md p-6 border border-gray-700" onclick="event.stopPropagation()">
-        <h3 class="text-2xl font-bold mb-4 text-primary-accent" id="modal-title">Поставить Ресурс на Рынок</h3>
-        
-        <!-- Шаг 1: Выбор ресурса и количества -->
-        <div id="modal-step-1">
-            <!-- Текст стал ярко-белым (text-gray-100) -->
-            <label class="block text-sm font-medium text-gray-100 mb-2">Ресурс для продажи:</label>
-            <select id="listing-resource" class="w-full p-2 bg-dark-card border border-gray-600 rounded-lg text-gray-100 mb-4">
-                <option value="" disabled selected>-- Выберите ресурс --</option>
-                <option value="iron">Железо (Текущий: <span id="max-iron">0.00</span>)</option>
-                <option value="wood">Дерево (Текущий: <span id="max-wood">0.00</span>)</option>
-                <option value="wool">Шерсть (Текущий: <span id="max-wool">0.00</span>)</option>
-            </select>
-
-            <!-- Текст стал ярко-белым (text-gray-100) -->
-            <label class="block text-sm font-medium text-gray-100 mb-2">Количество: <span id="quantity-display">0.00</span></label>
-            <input type="range" id="listing-quantity-slider" min="0" max="0" step="0.01" value="0" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer range-lg mb-4">
-            <input type="number" id="listing-quantity-input" min="0" step="0.01" value="0.00" class="w-full p-2 bg-dark-card border border-gray-600 rounded-lg text-gray-100 mb-4">
-
-            <button onclick="window.nextListingStep(2)" class="w-full py-3 bg-primary-accent hover:bg-primary-hover rounded-lg font-bold transition duration-150 transform active:scale-95 disabled:bg-gray-500/50" id="step1-next-button" disabled>
-                Далее
-            </button>
-        </div>
-
-        <!-- Шаг 2: Выбор типа сделки и цены -->
-        <div id="modal-step-2" class="hidden">
-            <!-- Текст стал ярко-белым (text-gray-100) -->
-            <h4 class="text-xl font-semibold mb-3 text-gray-100">Тип Сделки</h4>
-            
-            <div class="flex space-x-4 mb-4">
-                <!-- Кнопка Продажа -->
-                <button onclick="window.setListingType('sale')" id="type-sale-btn" class="flex-1 py-3 px-2 border-2 border-gray-600 rounded-lg transition duration-150 font-bold hover:bg-gray-700/50">
-                    Продажа
-                </button>
-                <!-- Кнопка Аукцион -->
-                <button onclick="window.setListingType('auction')" id="type-auction-btn" class="flex-1 py-3 px-2 border-2 border-gray-600 rounded-lg transition duration-150 font-bold hover:bg-gray-700/50">
-                    Аукцион
-                </button>
-            </div>
-
-            <!-- Общая цена (для Продажи и Аукциона) -->
-            <!-- Текст стал ярко-белым (text-gray-100) -->
-            <label class="block text-sm font-medium text-gray-100 mb-2 mt-4" id="price-label">Цена за единицу (₽):</label>
-            <input type="number" id="listing-price" min="0.01" step="0.01" value="1.00" class="w-full p-2 bg-dark-card border border-gray-600 rounded-lg text-gray-100 mb-4">
-            
-            <!-- Дополнительные поля для Аукциона -->
-            <div id="auction-fields" class="hidden border-t border-gray-700 pt-4 mt-4">
-                 <!-- Текст стал ярко-белым (text-gray-100) -->
-                 <label class="block text-sm font-medium text-gray-100 mb-2">Продолжительность Аукциона после ставки (сек):</label>
-                 <input type="number" id="auction-duration" min="5" step="1" value="30" class="w-full p-2 bg-dark-card border border-gray-600 rounded-lg text-gray-100 mb-4">
-            </div>
-
-            <div class="flex justify-between space-x-3 mt-6">
-                <button onclick="window.nextListingStep(1)" class="w-1/3 py-3 bg-gray-600 hover:bg-gray-500 rounded-lg font-bold transition duration-150 transform active:scale-95">Назад</button>
-                <button onclick="window.createListing()" class="w-2/3 py-3 bg-green-600 hover:bg-green-500 rounded-lg font-extrabold transition duration-150 transform active:scale-95 disabled:bg-gray-500/50" id="create-listing-button" disabled>
-                    Разместить
-                </button>
-            </div>
+    <!-- Модальное окно для сообщений -->
+    <div id="messageBox" class="message-box">
+        <div class="message-content">
+            <p id="messageText"></p>
+            <button onclick="closeMessageBox()">OK</button>
         </div>
     </div>
-</div>
-
-
-<script type="module">
-    // Global variables provided by the environment
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-    let app;
-    let db;
-    let auth;
-    let userId = null;
-    let isAuthReady = false;
     
-    // Resource mapping for display
-    const resourceMap = { iron: 'Железо', wood: 'Дерево', wool: 'Шерсть' };
+    <div id="appContainer">
+        <!-- Основной контейнер меню -->
+        <div id="menuContainer" class="menu-container">
+            <h1>Smartphone Studio</h1>
+            
+            <button id="newGameBtn" class="menu-button" onclick="handleNewGame()">
+                Новая игра
+            </button>
 
-    // Глобальное состояние игры
-    const gameState = {
-        money: 0,
-        resources: { 
-            iron: 0, 
-            wood: 0, 
-            wool: 0 
-        },
-        selectedResource: null,
-        clickCounter: 0,
-        clicksNeeded: 3,
-        productionAmount: 0.03,
-        listings: [] // Array to hold active listings
-    };
+            <button id="settingsBtn" class="menu-button" onclick="handleSettings()">
+                Настройки
+            </button>
+
+            <button id="exitBtn" class="menu-button" onclick="handleExit()">
+                Выход
+            </button>
+        </div>
+        
+        <!-- Контейнер для 3D игры -->
+        <div id="gameContainer">
+            <!-- Сюда three.js вставит canvas -->
+        </div>
+    </div>
     
-    // Global references for Firebase functions
-    let doc, collection, query, onSnapshot, setDoc, updateDoc, increment, addDoc, deleteDoc, getFirestore;
-    
-    // Global timer for auction updates
-    let auctionTimerInterval = null;
+    <!-- Виртуальный Джойстик для мобильного управления -->
+    <div id="mobileControls">
+        <!-- Левый джойстик (Движение: W/S/A/D) -->
+        <div id="movePad" class="joystick-pad">
+            <div id="moveThumb" class="joystick-thumb"></div>
+        </div>
+    </div>
 
-
-    // --- Core Logic Functions (Accessible globally via window) ---
-
-    // Function to display custom alert (replacing alert())
-    window.alertMessage = (message, color = 'blue') => {
-        const modal = document.createElement('div');
-        const colorMap = {
-            'blue': 'bg-primary-accent',
-            'red': 'bg-red-600',
-            'green': 'bg-green-600',
-            'yellow': 'bg-yellow-600'
+    <script>
+        // Глобальные переменные для three.js
+        let scene, camera, renderer, player;
+        let clock = new THREE.Clock();
+        let controls = {
+            forward: false, backward: false, left: false, right: false,
+            moveX: 0, moveZ: 0
         };
-        
-        modal.className = `fixed top-5 right-5 p-4 rounded-lg shadow-xl text-white z-50 transition-transform duration-500 transform translate-x-0 ${colorMap[color]}`;
-        modal.textContent = message;
-        
-        document.body.appendChild(modal);
-        
-        // Auto-hide after 3 seconds
-        setTimeout(() => {
-            modal.classList.add('translate-x-full');
-            modal.style.opacity = 0;
-            setTimeout(() => modal.remove(), 500); // Remove after transition
-        }, 3000);
-    };
+        const playerSpeed = 0.05;
+        const lookSensitivity = 0.005; // Чувствительность для обзора
+        const gameContainer = document.getElementById('gameContainer');
+        const menuContainer = document.getElementById('menuContainer');
+        const mobileControls = document.getElementById('mobileControls');
 
-    // Обновление всех элементов интерфейса
-    function updateUI() {
-        // 1. Обновление хедера
-        document.getElementById('money-amount').textContent = gameState.money.toFixed(2);
-        document.getElementById('resource-iron').textContent = gameState.resources.iron.toFixed(2);
-        document.getElementById('resource-wood').textContent = gameState.resources.wood.toFixed(2);
-        document.getElementById('resource-wool').textContent = gameState.resources.wool.toFixed(2);
-        
-        // 2. Обновление вкладки Ресурсы
-        const selectionArea = document.getElementById('resource-selection-area');
-        const gatheringArea = document.getElementById('resource-gathering-area');
-        const gatherButton = document.getElementById('gather-button');
+        // ==========================================================
+        // UI И ОБРАБОТЧИКИ МЕНЮ
+        // ==========================================================
 
-        if (gameState.selectedResource) {
-            selectionArea.classList.add('hidden');
-            gatheringArea.classList.remove('hidden');
+        function showMessageBox(text) {
+            const box = document.getElementById('messageBox');
+            const messageText = document.getElementById('messageText');
+            messageText.textContent = text;
+            box.style.display = 'flex';
+        }
 
-            const resourceName = resourceMap[gameState.selectedResource];
-            document.getElementById('current-resource-name').textContent = resourceName;
+        function closeMessageBox() {
+            document.getElementById('messageBox').style.display = 'none';
+        }
+
+        function handleNewGame() {
+            menuContainer.style.display = 'none';
+            gameContainer.style.display = 'block';
+            mobileControls.classList.add('game-active'); // Показываем джойстик в ландшафте
+            initGame();
+            window.addEventListener('resize', onWindowResize);
             
-            gatherButton.textContent = `Клик (${gameState.clickCounter}/${gameState.clicksNeeded})`;
-            
-            const progress = gameState.clickCounter / gameState.clicksNeeded;
-            gatherButton.style.opacity = 0.5 + 0.5 * progress; 
-        }
-
-        // 3. Управление баннером загрузки
-        const loadingBanner = document.getElementById('loading-banner');
-        if (isAuthReady && userId) {
-             loadingBanner.classList.add('hidden');
-             document.querySelector('header').style.marginTop = '0';
-             document.querySelector('main').style.marginTop = '6rem';
-        } else {
-             loadingBanner.classList.remove('hidden');
-             document.querySelector('header').style.marginTop = '2.5rem';
-             document.querySelector('main').style.marginTop = '9.5rem';
-        }
-    }
-    
-    // --- Trading/Modal State ---
-    let currentListingType = null;
-    let currentListingResource = null;
-    let currentListingMax = 0;
-    
-    // --- DB Wrappers (Must be called after Firebase is initialized) ---
-    async function saveUserResources() {
-        if (!db || !userId) return;
-
-        // Path: /artifacts/{appId}/users/{userId}/game_data/main_state
-        const docRef = doc(db, 'artifacts', appId, 'users', userId, 'game_data', 'main_state');
-        const dataToSave = {
-            money: gameState.money,
-            resources: gameState.resources
-        };
-
-        try {
-            await setDoc(docRef, dataToSave, { merge: true });
-        } catch (e) {
-            console.error("Error saving document: ", e);
-        }
-    }
-
-    // --- Resources Page Logic ---
-    window.selectResource = (resource) => {
-        if (gameState.selectedResource) {
-            return;
-        }
-
-        gameState.selectedResource = resource;
-        gameState.clickCounter = 0; 
-        updateUI();
-
-        document.querySelectorAll('.resource-option').forEach(btn => {
-            btn.disabled = true;
-            btn.classList.add('opacity-50', 'cursor-not-allowed');
-            
-            if (btn.getAttribute('onclick').includes(resource)) {
-                 btn.classList.add('ring-4', 'ring-offset-2', 'ring-primary-accent', 'ring-offset-dark-card', 'opacity-100');
-                 btn.classList.remove('opacity-50');
+            // Если мы в ландшафте, обновить размер, чтобы игра заняла свое место
+            if (window.matchMedia("(orientation: landscape) and (max-width: 900px)").matches) {
+                onWindowResize();
             }
-        });
-        
-        window.showPage('resources', document.querySelector('[onclick*="resources"]'));
-    };
-
-    window.gatherResource = () => {
-        if (!gameState.selectedResource) return;
-
-        gameState.clickCounter++;
-        
-        if (gameState.clickCounter >= gameState.clicksNeeded) {
-            gameState.resources[gameState.selectedResource] = 
-                (gameState.resources[gameState.selectedResource] + gameState.productionAmount);
-            
-            // Сохраняем ресурсы в DB
-            saveUserResources();
-
-            gameState.clickCounter = 0;
-            
-            const gatherButton = document.getElementById('gather-button');
-            gatherButton.classList.add('animate-pulse', 'bg-green-500');
-            setTimeout(() => {
-                gatherButton.classList.remove('animate-pulse', 'bg-green-500');
-            }, 300);
         }
-        
-        updateUI();
-    };
 
-    // --- Navigation Logic ---
-    window.showPage = (pageId, clickedButton) => {
-        document.querySelectorAll('.page').forEach(page => {
-            page.style.display = 'none';
+        function handleSettings() {
+            showMessageBox("Открытие настроек. Настройте звук и управление!");
+        }
+
+        function handleExit() {
+            showMessageBox("Пока! Попробуем закрыть окно...");
+            setTimeout(() => { window.close(); }, 1000);
+        }
+
+        document.getElementById('messageBox').addEventListener('click', function(event) {
+            if (event.target === this) { closeMessageBox(); }
         });
 
-        const targetPage = document.getElementById(`page-${pageId}`);
-        if (targetPage) {
-            targetPage.style.display = 'block';
-            document.getElementById('content-area').scrollTop = 0;
+        // ==========================================================
+        // THREE.JS ИГРОВАЯ ЛОГИКА
+        // ==========================================================
 
-            document.querySelectorAll('.nav-item').forEach(button => {
-                button.classList.remove('active-tab', 'text-primary-accent');
-                button.classList.add('text-gray-400');
-                const svg = button.querySelector('svg');
-                const span = button.querySelector('span');
-                if (svg) { svg.classList.remove('text-primary-accent'); svg.classList.add('text-gray-400'); }
-                if (span) { span.classList.remove('text-primary-accent'); span.classList.add('text-gray-400'); }
-            });
+        function initGame() {
+            // 1. Сцена и Рендерер
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87ceeb); // Небо
 
-            if (clickedButton) {
-                clickedButton.classList.add('active-tab', 'text-primary-accent');
-                clickedButton.classList.remove('text-gray-400');
-                const svg = clickedButton.querySelector('svg');
-                const span = clickedButton.querySelector('span');
-                if (svg) { svg.classList.add('text-primary-accent'); svg.classList.remove('text-gray-400'); }
-                if (span) { span.classList.add('text-primary-accent'); span.classList.remove('text-gray-400'); }
-            }
-        }
-    };
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(gameContainer.clientWidth, gameContainer.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            gameContainer.appendChild(renderer.domElement);
 
+            // 2. Камера (Первый вид)
+            camera = new THREE.PerspectiveCamera(75, gameContainer.clientWidth / gameContainer.clientHeight, 0.1, 1000);
+            camera.rotation.order = 'YXZ'; // Для правильного вращения по Y
 
-    // --- Modal Control Functions (Globally accessible) ---
-    // !!! ИСПРАВЛЕНИЕ: Добавлен префикс 'window.' для доступа из HTML !!!
-    window.openListingModal = () => {
-        if (!userId) {
-            window.alertMessage("Дождитесь загрузки данных игрока.", 'red');
-            return;
-        }
+            // Добавляем капсулу игрока для физики (визуально невидима)
+            player = new THREE.Object3D();
+            player.position.set(0, 1.7, 0); // Высота глаз 1.7
+            scene.add(player);
+            player.add(camera); // Камера следует за игроком
 
-        currentListingType = null;
-        currentListingResource = null;
-        
-        // Update resource max quantities in the dropdown options
-        document.querySelector('#listing-resource option[value="iron"]').innerHTML = `Железо (Текущий: ${gameState.resources.iron.toFixed(2)})`;
-        document.querySelector('#listing-resource option[value="wood"]').innerHTML = `Дерево (Текущий: ${gameState.resources.wood.toFixed(2)})`;
-        document.querySelector('#listing-resource option[value="wool"]').innerHTML = `Шерсть (Текущий: ${gameState.resources.wool.toFixed(2)})`;
-        
-        // Reset inputs
-        document.getElementById('listing-resource').value = "";
-        document.getElementById('listing-price').value = 1.00;
-        document.getElementById('auction-duration').value = 30;
-        document.getElementById('listing-quantity-slider').value = 0;
-        document.getElementById('listing-quantity-input').value = 0.00;
-        document.getElementById('quantity-display').textContent = '0.00';
-        
-        // Reset step 2 type buttons
-        document.getElementById('type-sale-btn').classList.remove('ring-4', 'ring-green-400');
-        document.getElementById('type-auction-btn').classList.remove('ring-4', 'ring-green-400');
-        document.getElementById('auction-fields').classList.add('hidden');
+            // 3. Свет
+            const ambientLight = new THREE.AmbientLight(0x404040, 2);
+            scene.add(ambientLight);
 
-        // Reset step 1 validity (important for slider/input logic)
-        currentListingMax = 0;
-        document.getElementById('listing-quantity-slider').max = 0;
-        checkStep1Validity();
-        
-        window.nextListingStep(1); // Go to step 1
-        document.getElementById('listing-modal').classList.remove('hidden');
-    }
+            const sunLight = new THREE.DirectionalLight(0xffffff, 3);
+            sunLight.position.set(50, 80, 50);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 2048;
+            sunLight.shadow.mapSize.height = 2048;
+            sunLight.shadow.camera.near = 1;
+            sunLight.shadow.camera.far = 200;
+            sunLight.shadow.camera.left = -50;
+            sunLight.shadow.camera.right = 50;
+            sunLight.shadow.camera.top = 50;
+            sunLight.shadow.camera.bottom = -50;
+            scene.add(sunLight);
 
-    // !!! ИСПРАВЛЕНИЕ: Добавлен префикс 'window.' для доступа из HTML !!!
-    window.closeListingModal = () => {
-        document.getElementById('listing-modal').classList.add('hidden');
-    }
+            // 4. Создание окружения
+            createEnvironment();
 
-    function handleResourceSelect(event) {
-        const resource = event.target.value;
-        currentListingResource = resource;
-        currentListingMax = gameState.resources[resource];
-        
-        const slider = document.getElementById('listing-quantity-slider');
-        // Max value of slider should be integer *100 to avoid float issues
-        slider.max = Math.floor(currentListingMax * 100); 
-        slider.step = currentListingMax > 0 ? 1 : 0; // Step is 1 for the *100 version
-        
-        // Reset quantity
-        slider.value = 0;
-        document.getElementById('listing-quantity-input').value = '0.00';
-        document.getElementById('quantity-display').textContent = '0.00';
+            // 5. Инициализация управления
+            setupKeyboardControls();
+            setupTouchControls(); // Джойстик движения
+            setupUniversalLookControls(); // Обзор (мышь/свободный тач)
 
-        checkStep1Validity();
-    }
-    
-    function checkStep1Validity() {
-        const resource = document.getElementById('listing-resource').value;
-        const quantity = parseFloat(document.getElementById('listing-quantity-input').value);
-        const nextBtn = document.getElementById('step1-next-button');
-
-        const isValid = resource && quantity > 0.00 && quantity <= currentListingMax;
-        nextBtn.disabled = !isValid;
-    }
-
-    window.nextListingStep = (step) => {
-        document.getElementById('modal-step-1').classList.add('hidden');
-        document.getElementById('modal-step-2').classList.add('hidden');
-        document.getElementById('modal-title').textContent = (step === 1) ? "Выбор Ресурса" : "Параметры Сделки";
-
-        if (step === 1) {
-            document.getElementById('modal-step-1').classList.remove('hidden');
-        } else if (step === 2) {
-            document.getElementById('modal-step-2').classList.remove('hidden');
-        }
-        checkCreateListingValidity();
-    }
-    
-    window.setListingType = (type) => {
-        currentListingType = type;
-        const saleBtn = document.getElementById('type-sale-btn');
-        const auctionBtn = document.getElementById('type-auction-btn');
-        const auctionFields = document.getElementById('auction-fields');
-        const priceLabel = document.getElementById('price-label');
-
-        saleBtn.classList.remove('ring-4', 'ring-green-400');
-        auctionBtn.classList.remove('ring-4', 'ring-green-400');
-        
-        if (type === 'sale') {
-            saleBtn.classList.add('ring-4', 'ring-green-400');
-            auctionFields.classList.add('hidden');
-            priceLabel.textContent = "Цена за единицу (₽):";
-        } else if (currentListingType === 'auction') {
-            auctionBtn.classList.add('ring-4', 'ring-green-400');
-            auctionFields.classList.remove('hidden');
-            priceLabel.textContent = "Стартовая цена за единицу (₽):";
-        }
-        
-        checkCreateListingValidity();
-    }
-    
-    function checkCreateListingValidity() {
-        const price = parseFloat(document.getElementById('listing-price').value);
-        const duration = parseFloat(document.getElementById('auction-duration').value);
-        const createBtn = document.getElementById('create-listing-button');
-        
-        let isValid = currentListingType && price > 0.00;
-        
-        if (currentListingType === 'auction' && (isNaN(duration) || duration < 5)) {
-            isValid = false;
-        }
-
-        createBtn.disabled = !isValid;
-    }
-    
-    // --- Trading Logic (Globally accessible) ---
-    
-    // Renders active listings on the Supplies page
-    function renderListings() {
-        const container = document.getElementById('listings-container');
-        container.innerHTML = '';
-        const noListingsP = document.getElementById('no-listings');
-        if (noListingsP) noListingsP.classList.add('hidden');
-
-        if (gameState.listings.length === 0) {
-             if (noListingsP) noListingsP.classList.remove('hidden');
-             return;
-        }
-
-        gameState.listings.forEach(listing => {
-            const isSeller = listing.sellerId === userId;
-            const isAuction = listing.type === 'auction';
-            const priceOrBid = isAuction 
-                ? listing.currentBid > 0 ? listing.currentBid.toFixed(2) : (listing.startPrice * listing.quantity).toFixed(2)
-                : (listing.price * listing.quantity).toFixed(2);
-            const priceLabel = isAuction ? 'Текущая ставка (всего)' : 'Цена покупки';
+            // 6. Запуск цикла анимации
+            animate();
             
-            // Time check: 1 hour listing expiration if unsold/no bid
-            const hourExpiration = 60 * 60 * 1000; 
-            const elapsedTime = Date.now() - listing.listingTime.getTime();
-            
-            if (elapsedTime > hourExpiration && listing.currentBid === 0) {
-                // If the seller views their expired, unsold listing, remove it and refund.
-                if (isSeller) {
-                    window.removeListing(listing.id, listing.resource, listing.quantity, true);
-                }
-                return; 
-            }
+            // Первоначальный ресайз
+            onWindowResize();
+        }
 
-            // Auction countdown logic
-            let auctionStatus = '';
-            let timeLeftDisplay = '';
-            let canBid = true;
-            let auctionFinished = false;
+        function createEnvironment() {
+            // Трава/Земля
+            const groundGeometry = new THREE.PlaneGeometry(200, 200);
+            const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x6b8e23 }); // Цвет травы
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
 
-            if (isAuction) {
-                if (listing.currentBidderId) {
-                    // Active bid: Initial display, real-time update handled by updateAuctionTimers
-                    const auctionDurationMs = listing.auctionDuration * 1000;
-                    const timeSinceLastBid = Date.now() - listing.lastBidTime.getTime();
-                    const timeLeftMs = auctionDurationMs - timeSinceLastBid;
-                    
-                    if (timeLeftMs <= 0) {
-                         timeLeftDisplay = `(Завершена)`;
-                         auctionStatus = 'text-red-500 font-bold';
-                         canBid = false;
-                         auctionFinished = true;
-                    } else {
-                         // Initial value (will be overwritten by interval immediately)
-                         timeLeftDisplay = `(Таймер: --:--)`; 
-                         auctionStatus = 'text-yellow-400 font-bold';
-                    }
-                } else {
-                    // No bids yet
-                    if (elapsedTime > hourExpiration) {
-                         auctionStatus = 'text-red-500 italic';
-                         timeLeftDisplay = '(Срок листинга истёк)';
-                         canBid = false;
-                         auctionFinished = true; // Auction considered failed if no bid after 1 hour
-                     } else {
-                         auctionStatus = 'text-green-400';
-                         timeLeftDisplay = `(Ожидание ставки)`;
-                     }
-                }
-            }
+            // Река (Простая плоскость ниже уровня земли)
+            const waterGeometry = new THREE.PlaneGeometry(10, 100);
+            const waterMaterial = new THREE.MeshLambertMaterial({ color: 0x00aaff, transparent: true, opacity: 0.7 });
+            const river = new THREE.Mesh(waterGeometry, waterMaterial);
+            river.rotation.x = -Math.PI / 2;
+            river.position.y = -0.1; 
+            river.position.z = 0;
+            scene.add(river);
             
-            
-            const listingElement = document.createElement('div');
-            listingElement.className = 'bg-dark-card p-4 rounded-xl shadow-lg border border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center';
-            listingElement.innerHTML = `
-                <div class="mb-3 sm:mb-0">
-                    <p class="text-xl font-bold text-primary-accent">${resourceMap[listing.resource]} x ${listing.quantity.toFixed(2)}</p>
-                    <p class="text-xs text-gray-500 mb-1">${isSeller ? 'Ваше предложение' : `Продавец ID: ${listing.sellerId}`}</p>
-                    <p class="text-sm text-gray-300">Тип: <span class="${isAuction ? 'text-purple-400' : 'text-green-400'}">${isAuction ? 'Аукцион' : 'Продажа'}</span> <span id="timer-${listing.id}" class="${auctionStatus}">${timeLeftDisplay}</span></p>
-                    <p class="text-md text-yellow-400 mt-1">${priceLabel}: <span class="font-extrabold">₽${priceOrBid}</span></p>
-                </div>
-                <div class="w-full sm:w-auto mt-2 sm:mt-0">
-                    ${!isSeller && !isAuction ? 
-                        // Sale: Buy Button
-                        `<button onclick="window.buyListing('${listing.id}', ${listing.price * listing.quantity})" class="w-full sm:w-auto py-2 px-4 bg-green-600 hover:bg-green-500 rounded-lg font-bold text-sm transform active:scale-95">КУПИТЬ</button>` :
-                    !isSeller && isAuction && canBid && listing.currentBidderId !== userId ?
-                        // Auction: Bid Button (if not the current highest bidder)
-                        `<button onclick="window.openBidModal('${listing.id}', ${listing.currentBid || listing.startPrice}, '${listing.resource}', ${listing.quantity})" class="w-full sm:w-auto py-2 px-4 bg-purple-600 hover:bg-purple-500 rounded-lg font-bold text-sm transform active:scale-95">СТАВКА</button>` :
-                    isSeller && isAuction && auctionFinished && listing.currentBid > 0 ?
-                         // Resolve button for finished auction (seller action)
-                        `<button onclick="window.resolveAuction('${listing.id}')" class="w-full sm:w-auto py-2 px-4 bg-red-600 hover:bg-red-500 rounded-lg font-bold text-sm transform active:scale-95">ЗАВЕРШИТЬ</button>` :
-                    isSeller && isAuction && auctionFinished && listing.currentBid === 0 ?
-                        // Remove button for failed auction (seller action)
-                        `<button onclick="window.removeListing('${listing.id}', '${listing.resource}', ${listing.quantity}, true)" class="w-full sm:w-auto py-2 px-4 bg-gray-600 hover:bg-gray-500 rounded-lg font-bold text-sm transform active:scale-95">ВЕРНУТЬ</button>` :
-                    isSeller && listing.type === 'sale' ?
-                        // Remove button for sale listing (seller action)
-                        `<button onclick="window.removeListing('${listing.id}', '${listing.resource}', ${listing.quantity}, false)" class="w-full sm:w-auto py-2 px-4 bg-gray-600 hover:bg-gray-500 rounded-lg font-bold text-sm transform active:scale-95">СНЯТЬ</button>` : ''
-                    }
-                </div>
-            `;
-            container.appendChild(listingElement);
-        });
-    }
-
-    // New function to handle real-time timer updates
-    function updateAuctionTimers() {
-        let needsFullRender = false;
-        
-        // Filter for auctions that are currently running (have a bidder)
-        gameState.listings.filter(l => l.type === 'auction' && l.currentBidderId).forEach(listing => {
-            const timerElement = document.getElementById(`timer-${listing.id}`);
-            if (!timerElement) return;
-
-            const auctionDurationMs = listing.auctionDuration * 1000;
-            const timeSinceLastBid = Date.now() - listing.lastBidTime.getTime();
-            let timeLeftMs = auctionDurationMs - timeSinceLastBid;
-            
-            if (timeLeftMs <= 0) {
-                timeLeftMs = 0;
-                timerElement.textContent = `(Завершена)`;
-                timerElement.classList.remove('text-yellow-400', 'text-green-400');
-                timerElement.classList.add('text-red-500', 'font-bold');
-                // Flag to trigger a full re-render after timer runs out to update action buttons
-                needsFullRender = true; 
-            } else {
-                const totalSeconds = Math.ceil(timeLeftMs / 1000);
-                const minutes = Math.floor(totalSeconds / 60);
-                const seconds = totalSeconds % 60;
+            // Простые Объекты (Деревья, Скалы, Облака)
+            const count = 30; // Количество объектов
+            for (let i = 0; i < count; i++) {
+                const x = THREE.MathUtils.randFloatSpread(150);
+                const z = THREE.MathUtils.randFloatSpread(150);
                 
-                timerElement.textContent = `(Таймер: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')})`;
-                timerElement.classList.add('text-yellow-400', 'font-bold');
-                timerElement.classList.remove('text-red-500');
-            }
-        });
-        
-        if (needsFullRender) {
-            // This ensures buttons like "ЗАВЕРШИТЬ" appear instantly when timer hits zero
-            renderListings(); 
-        }
-    }
-
-
-    window.createListing = async () => {
-        if (!db || !userId || !currentListingType) return;
-        
-        const resource = currentListingResource;
-        const quantity = parseFloat(document.getElementById('listing-quantity-input').value);
-        const price = parseFloat(document.getElementById('listing-price').value);
-        const auctionDuration = parseFloat(document.getElementById('auction-duration').value);
-
-        if (quantity <= 0 || quantity > gameState.resources[resource]) return;
-
-        window.closeListingModal();
-
-        const newListing = {
-            resource: resource,
-            quantity: quantity,
-            sellerId: userId,
-            type: currentListingType,
-            listingTime: new Date(),
-        };
-        
-        if (currentListingType === 'sale') {
-            newListing.price = price;
-        } else if (currentListingType === 'auction') {
-            newListing.startPrice = price;
-            newListing.currentBid = 0;
-            newListing.currentBidderId = null;
-            newListing.lastBidTime = null;
-            newListing.auctionDuration = auctionDuration;
-        }
-
-        // Deduct resource locally and save to Firestore
-        gameState.resources[resource] = (gameState.resources[resource] - quantity);
-        saveUserResources();
-
-        try {
-            const listingsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'listings');
-            await addDoc(listingsCollection, newListing);
-            window.alertMessage("Листинг создан и размещен на рынке!", 'green');
-        } catch (e) {
-            console.error("Error creating listing:", e);
-            window.alertMessage("Ошибка при размещении листинга.", 'red');
-        }
-    }
-    
-    // Function to handle the "BUY" action (for Sale listings)
-    window.buyListing = async (listingId, totalCost) => {
-        if (!db || !userId || gameState.money < totalCost) {
-            window.alertMessage("Недостаточно средств для покупки!", 'red');
-            return;
-        }
-
-        const listing = gameState.listings.find(l => l.id === listingId);
-        if (!listing || listing.type === 'auction' || listing.sellerId === userId) return;
-
-        const listingRef = doc(db, 'artifacts', appId, 'public', 'data', 'listings', listingId);
-        const userRef = doc(db, 'artifacts', appId, 'users', userId, 'game_data', 'main_state');
-        const sellerRef = doc(db, 'artifacts', appId, 'users', listing.sellerId, 'game_data', 'main_state');
-        
-        try {
-            await deleteDoc(listingRef);
-
-            // Update Buyer: Money and Resource
-            await updateDoc(userRef, {
-                money: increment(-totalCost),
-                [`resources.${listing.resource}`]: increment(listing.quantity)
-            });
-
-            // Update Seller: Money
-            await updateDoc(sellerRef, {
-                money: increment(totalCost)
-            });
-            
-            window.alertMessage(`Куплено ${listing.quantity.toFixed(2)} ${resourceMap[listing.resource]} за ₽${totalCost.toFixed(2)}!`, 'green');
-
-        } catch (e) {
-            console.error("Transaction failed:", e);
-            window.alertMessage("Ошибка при совершении сделки. Повторите попытку.", 'red');
-        }
-    }
-    
-    // Function to handle the "REMOVE/REFUND" action (for Seller)
-    window.removeListing = async (listingId, resource, quantity, isExpiredReturn) => {
-        if (!db || !userId) return;
-
-        const listingRef = doc(db, 'artifacts', appId, 'public', 'data', 'listings', listingId);
-        try {
-            await deleteDoc(listingRef);
-            
-            // Refund resource to seller's DB
-            const userRef = doc(db, 'artifacts', appId, 'users', userId, 'game_data', 'main_state');
-            await updateDoc(userRef, {
-                [`resources.${resource}`]: increment(quantity)
-            });
-            
-            if (isExpiredReturn) {
-                 window.alertMessage(`Срок листинга истёк. ${quantity.toFixed(2)} ${resourceMap[resource]} возвращено.`, 'yellow');
-            } else {
-                 window.alertMessage(`Листинг снят с рынка. ${quantity.toFixed(2)} ${resourceMap[resource]} возвращено.`, 'yellow');
-            }
-
-        } catch (e) {
-            console.error("Error removing listing:", e);
-            window.alertMessage("Ошибка при снятии листинга.", 'red');
-        }
-    }
-    
-    window.openBidModal = (listingId, currentBid, resource, quantity) => {
-        if (!db || !userId) return;
-        const currentListing = gameState.listings.find(l => l.id === listingId);
-        
-        // Calculate total cost for the whole quantity
-        const currentTotal = currentListing.currentBid > 0 ? currentListing.currentBid : currentListing.startPrice * currentListing.quantity;
-        const minTotalBid = currentTotal + 0.01;
-
-        const bid = prompt(`Ваша ставка за ${resourceMap[resource]} x ${quantity.toFixed(2)} (текущая общая ставка: ₽${currentTotal.toFixed(2)}). Минимальная ставка: ₽${minTotalBid.toFixed(2)}.`);
-        
-        const bidAmount = parseFloat(bid);
-        
-        if (isNaN(bidAmount) || bidAmount < minTotalBid) {
-            window.alertMessage(`Ставка должна быть не менее ₽${minTotalBid.toFixed(2)} (общая стоимость лота).`, 'red');
-            return;
-        }
-
-        if (gameState.money < bidAmount) {
-             window.alertMessage(`Недостаточно средств на балансе (₽${bidAmount.toFixed(2)}).`, 'red');
-             return;
-        }
-
-        placeBid(listingId, bidAmount);
-    }
-
-    async function placeBid(listingId, bidAmount) {
-        const listingRef = doc(db, 'artifacts', appId, 'public', 'data', 'listings', listingId);
-        const listing = gameState.listings.find(l => l.id === listingId);
-        
-        if (!listing || listing.type !== 'auction' || bidAmount <= listing.currentBid || listing.sellerId === userId) {
-            window.alertMessage("Неверная ставка или вы продавец.", 'red');
-            return;
-        }
-        
-        const previousBidderId = listing.currentBidderId;
-        const previousBid = listing.currentBid;
-        
-        // 1. Deduct bid amount from the bidder's DB balance (immediately)
-        const bidderRef = doc(db, 'artifacts', appId, 'users', userId, 'game_data', 'main_state');
-        await updateDoc(bidderRef, {
-            money: increment(-bidAmount),
-        });
-        
-        // 2. Refund previous bidder (if any)
-        if (previousBidderId && previousBidderId !== userId) {
-            const previousBidderRef = doc(db, 'artifacts', appId, 'users', previousBidderId, 'game_data', 'main_state');
-            await updateDoc(previousBidderRef, {
-                money: increment(previousBid)
-            });
-            window.alertMessage(`₽${previousBid.toFixed(2)} возвращено предыдущему участнику торгов.`, 'yellow');
-        }
-
-        // 3. Update listing in Firestore
-        try {
-            await updateDoc(listingRef, {
-                currentBid: bidAmount,
-                currentBidderId: userId,
-                lastBidTime: new Date()
-            });
-            window.alertMessage(`Вы поставили ₽${bidAmount.toFixed(2)}! Таймер аукциона сброшен.`, 'green');
-        } catch (e) {
-            console.error("Error placing bid:", e);
-            window.alertMessage("Ошибка при размещении ставки.", 'red');
-            // NOTE: In a real app, rollback transactions would be needed here.
-        }
-    }
-    
-    window.resolveAuction = async (listingId) => {
-        const listing = gameState.listings.find(l => l.id === listingId);
-        if (!listing || listing.type !== 'auction' || listing.sellerId !== userId) return;
-
-        if (!listing.currentBidderId || listing.currentBid === 0) {
-            window.alertMessage("Аукцион не может быть завершен без ставки.", 'red');
-            return;
-        }
-
-        const winnerId = listing.currentBidderId;
-        const finalPrice = listing.currentBid;
-
-        const listingRef = doc(db, 'artifacts', appId, 'public', 'data', 'listings', listingId);
-        const winnerRef = doc(db, 'artifacts', appId, 'users', winnerId, 'game_data', 'main_state');
-        const sellerRef = doc(db, 'artifacts', appId, 'users', listing.sellerId, 'game_data', 'main_state');
-
-        try {
-            // 1. Remove the listing
-            await deleteDoc(listingRef);
-
-            // 2. Transfer resource to winner (Money was already deducted from winner's account upon bidding)
-            await updateDoc(winnerRef, {
-                [`resources.${listing.resource}`]: increment(listing.quantity)
-            });
-
-            // 3. Transfer money to seller (The final price the winner paid)
-            await updateDoc(sellerRef, {
-                money: increment(finalPrice)
-            });
-            
-            window.alertMessage(`Аукцион завершен! ${resourceMap[listing.resource]} x ${listing.quantity.toFixed(2)} продан за ₽${finalPrice.toFixed(2)}.`, 'green');
-
-        } catch (e) {
-            console.error("Auction resolution failed:", e);
-            window.alertMessage("Критическая ошибка при завершении аукциона.", 'red');
-        }
-    }
-
-
-    document.addEventListener('DOMContentLoaded', async () => {
-        // --- Firebase Setup and Authentication ---
-        if (firebaseConfig) {
-            const firebaseAppModule = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js");
-            const firebaseAuthModule = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js");
-            const firebaseFirestoreModule = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
-            
-            const { initializeApp } = firebaseAppModule;
-            const { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } = firebaseAuthModule;
-            const firestore = firebaseFirestoreModule;
-            
-            // Assign imported functions to global references
-            getFirestore = firestore.getFirestore; // Added missing import
-            doc = firestore.doc;
-            collection = firestore.collection;
-            query = firestore.query;
-            onSnapshot = firestore.onSnapshot;
-            setDoc = firestore.setDoc;
-            updateDoc = firestore.updateDoc;
-            increment = firestore.increment;
-            addDoc = firestore.addDoc;
-            deleteDoc = firestore.deleteDoc;
-            
-            // Initialize services
-            app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-            
-            // Authentication
-            const userStatePromise = new Promise(resolve => {
-                onAuthStateChanged(auth, async (user) => {
-                    if (!user) {
-                        try {
-                            if (initialAuthToken) {
-                                user = (await signInWithCustomToken(auth, initialAuthToken)).user;
-                            } else {
-                                user = (await signInAnonymously(auth)).user;
-                            }
-                        } catch (error) {
-                            console.error("Auth failed, falling back to anonymous:", error);
-                            user = (await signInAnonymously(auth)).user;
-                        }
-                    }
-                    userId = user.uid;
-                    isAuthReady = true;
-                    resolve();
-                });
-            });
-
-            await userStatePromise;
-            
-            // FIX: Update UI immediately after auth is ready to show the user ID
-            if (userId) {
-                document.getElementById('user-id-display').textContent = userId;
-            }
-            updateUI(); // Initial UI update to hide the loading banner
-
-            // Start listeners after authentication is complete
-            loadUserResources();
-            loadListings();
-            
-            // Start global auction timer
-            if (auctionTimerInterval) {
-                clearInterval(auctionTimerInterval);
-            }
-            auctionTimerInterval = setInterval(updateAuctionTimers, 1000);
-        }
-
-        // --- DB Listener Functions (Defined within DOMContentLoaded to ensure DB functions are ready) ---
-        function loadUserResources() {
-            if (!db || !userId) return;
-
-            // Path: /artifacts/{appId}/users/{userId}/game_data/main_state
-            const docRef = doc(db, 'artifacts', appId, 'users', userId, 'game_data', 'main_state');
-            
-            onSnapshot(docRef, (doc) => {
-                if (doc.exists()) {
-                    const data = doc.data();
-                    gameState.money = data.money || 0;
-                    gameState.resources.iron = data.resources?.iron || 0;
-                    gameState.resources.wood = data.resources?.wood || 0;
-                    gameState.resources.wool = data.resources?.wool || 0;
+                // Избегаем реки (координаты X от -5 до 5)
+                if (x > -5 && x < 5) continue; 
+                
+                if (Math.random() < 0.6) {
+                    createSimpleTree(x, z);
                 } else {
-                    // If document does not exist, ensure initial save is run 
-                    // to create the document with default values (0 resources, 0 money)
-                    saveUserResources();
+                    createSimpleRock(x, z);
                 }
-                updateUI();
-            }, (error) => {
-                console.error("Error listening to user data:", error);
-            });
-        }
-
-        function loadListings() {
-            if (!db || !userId) return;
-
-            // Path: /artifacts/{appId}/public/data/listings
-            const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'listings'));
-
-            onSnapshot(q, (snapshot) => {
-                const freshListings = [];
-                snapshot.forEach((doc) => {
-                    const data = doc.data();
-                    freshListings.push({
-                        id: doc.id,
-                        ...data,
-                        // Convert Firestore timestamps to JS Date objects for easy comparison
-                        listingTime: data.listingTime ? data.listingTime.toDate() : new Date(0),
-                        lastBidTime: data.lastBidTime ? data.lastBidTime.toDate() : null
-                    });
-                });
-                // Sort by newest first
-                gameState.listings = freshListings.sort((a, b) => b.listingTime.getTime() - a.listingTime.getTime()); 
-                renderListings();
-            }, (error) => {
-                console.error("Error listening to listings:", error);
-            });
-        }
-        
-        // --- UI Setup ---
-        // Setup for slider/input sync (using factor of 100 to handle floats)
-        const slider = document.getElementById('listing-quantity-slider');
-        const input = document.getElementById('listing-quantity-input');
-        const select = document.getElementById('listing-resource');
-
-        select.onchange = handleResourceSelect;
-        
-        slider.oninput = () => {
-            const val = parseFloat(slider.value) / 100;
-            input.value = val.toFixed(2);
-            document.getElementById('quantity-display').textContent = val.toFixed(2);
-            checkStep1Validity();
-        };
-        input.oninput = () => {
-            let val = parseFloat(input.value);
-            if (isNaN(val) || val < 0) val = 0;
-            if (val > currentListingMax) val = currentListingMax;
+            }
             
-            slider.value = Math.floor(val * 100);
-            input.value = val.toFixed(2);
-            document.getElementById('quantity-display').textContent = val.toFixed(2);
-            checkStep1Validity();
-        };
-
-        // Price/Duration sync
-        document.getElementById('listing-price').oninput = checkCreateListingValidity;
-        document.getElementById('auction-duration').oninput = checkCreateListingValidity;
-
-
-        // Initial page load
-        const initialButton = document.querySelector('.nav-item.active-tab');
-        if (initialButton) {
-            const initialPageIdMatch = initialButton.getAttribute('onclick').match(/'(.*?)'/);
-            if (initialPageIdMatch && initialPageIdMatch[1]) {
-                window.showPage(initialPageIdMatch[1], initialButton);
+            // Облака
+            for (let i = 0; i < 10; i++) {
+                createCloud(
+                    THREE.MathUtils.randFloatSpread(100), // x
+                    THREE.MathUtils.randFloat(20, 30),   // y (высоко)
+                    THREE.MathUtils.randFloatSpread(100)  // z
+                );
             }
         }
+
+        function createSimpleTree(x, z) {
+            // Ствол
+            const trunkGeometry = new THREE.CylinderGeometry(0.2, 0.2, 3, 8);
+            const trunkMaterial = new THREE.MeshLambertMaterial({ color: 0x8b4513 }); // Коричневый
+            const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+            trunk.position.set(x, 1.5, z);
+            trunk.castShadow = true;
+            trunk.receiveShadow = true;
+            
+            // Крона
+            const leavesGeometry = new THREE.ConeGeometry(1.5, 3, 8);
+            const leavesMaterial = new THREE.MeshLambertMaterial({ color: 0x008000 }); // Зеленый
+            const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
+            leaves.position.set(x, 4.5, z);
+            leaves.castShadow = true;
+            
+            scene.add(trunk);
+            scene.add(leaves);
+        }
+
+        function createSimpleRock(x, z) {
+            const rockGeometry = new THREE.SphereGeometry(THREE.MathUtils.randFloat(0.5, 1.5), 8, 8);
+            const rockMaterial = new THREE.MeshLambertMaterial({ color: 0xa9a9a9 }); // Серый
+            const rock = new THREE.Mesh(rockGeometry, rockMaterial);
+            rock.position.set(x, rock.geometry.parameters.radius, z);
+            rock.castShadow = true;
+            rock.receiveShadow = true;
+            scene.add(rock);
+        }
         
-        updateUI();
-    });
-</script>
+        function createCloud(x, y, z) {
+            const cloud = new THREE.Group();
+            const material = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 });
+            
+            // Составляем облако из нескольких сфер
+            for (let i = 0; i < 5; i++) {
+                const size = THREE.MathUtils.randFloat(1, 3);
+                const geometry = new THREE.SphereGeometry(size, 8, 8);
+                const mesh = new THREE.Mesh(geometry, material);
+                
+                mesh.position.set(
+                    THREE.MathUtils.randFloat(-2, 2),
+                    THREE.MathUtils.randFloat(-1, 1),
+                    THREE.MathUtils.randFloat(-2, 2)
+                );
+                mesh.castShadow = false;
+                cloud.add(mesh);
+            }
+            
+            cloud.position.set(x, y, z);
+            scene.add(cloud);
+        }
+
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+            updatePlayerMovement(delta);
+
+            renderer.render(scene, camera);
+        }
+
+        // ==========================================================
+        // ОБНОВЛЕНИЕ ДВИЖЕНИЯ ИГРОКА (Общее для клавиатуры и джойстика)
+        // ==========================================================
+        
+        function updatePlayerMovement(delta) {
+            const actualSpeed = playerSpeed * delta * 60; // Учитываем delta
+            
+            const moveDelta = new THREE.Vector3();
+            
+            // Клавиатура (WSAD)
+            if (controls.forward) moveDelta.z -= 1;
+            if (controls.backward) moveDelta.z += 1;
+            if (controls.left) moveDelta.x -= 1;
+            if (controls.right) moveDelta.x += 1;
+            
+            // Джойстик
+            if (controls.moveZ > 0) moveDelta.z -= 1;
+            if (controls.moveZ < 0) moveDelta.z += 1;
+            if (controls.moveX < 0) moveDelta.x -= 1;
+            if (controls.moveX > 0) moveDelta.x += 1;
+
+
+            if (moveDelta.lengthSq() > 0) {
+                moveDelta.normalize().multiplyScalar(actualSpeed);
+                
+                // Перемещение относительно направления взгляда игрока (player)
+                player.translateX(moveDelta.x);
+                player.translateZ(moveDelta.z);
+            }
+        }
+
+        // ==========================================================
+        // УПРАВЛЕНИЕ КЛАВИАТУРОЙ (WSAD)
+        // ==========================================================
+        
+        function setupKeyboardControls() {
+            document.addEventListener('keydown', (event) => {
+                switch (event.code) {
+                    case 'KeyW': controls.forward = true; break;
+                    case 'KeyS': controls.backward = true; break;
+                    case 'KeyA': controls.left = true; break;
+                    case 'KeyD': controls.right = true; break;
+                }
+            });
+
+            document.addEventListener('keyup', (event) => {
+                switch (event.code) {
+                    case 'KeyW': controls.forward = false; break;
+                    case 'KeyS': controls.backward = false; break;
+                    case 'KeyA': controls.left = false; break;
+                    case 'KeyD': controls.right = false; break;
+                }
+            });
+        }
+        
+        // ==========================================================
+        // УПРАВЛЕНИЕ КАСАНИЕМ (МОБИЛЬНЫЙ ДЖОЙСТИК)
+        // ==========================================================
+
+        const movePad = document.getElementById('movePad');
+        const moveThumb = document.getElementById('moveThumb');
+        const padRadius = 60;
+
+        function setupTouchControls() {
+            // Настройка джойстика движения
+            setupMovePad(movePad, moveThumb, (x, y) => {
+                controls.moveX = x;
+                controls.moveZ = y;
+            }, () => {
+                controls.moveX = 0;
+                controls.moveZ = 0;
+            });
+        }
+
+        // Вспомогательная функция для настройки джойстика движения
+        function setupMovePad(padElement, thumbElement, updateCallback, resetCallback) {
+            let active = false;
+            let currentTouchId = null;
+
+            const start = (event) => {
+                // Если это не мобильный режим в ландшафте, игнорируем
+                if (!window.matchMedia("(orientation: landscape) and (max-width: 900px)").matches) return;
+                
+                const touch = Array.from(event.changedTouches).find(t => t.target === padElement || padElement.contains(t.target));
+                if (touch && !active) {
+                    active = true;
+                    currentTouchId = touch.identifier;
+                    moveThumbTo(touch.clientX, touch.clientY, padElement, thumbElement, updateCallback);
+                    event.preventDefault(); // Предотвращаем прокрутку
+                }
+            };
+
+            const move = (event) => {
+                if (!active || currentTouchId === null) return;
+                const touch = Array.from(event.changedTouches).find(t => t.identifier === currentTouchId);
+                if (touch) {
+                    moveThumbTo(touch.clientX, touch.clientY, padElement, thumbElement, updateCallback);
+                    event.preventDefault();
+                }
+            };
+
+            const end = (event) => {
+                if (!active) return;
+                const touch = Array.from(event.changedTouches).find(t => t.identifier === currentTouchId);
+                if (touch) {
+                    active = false;
+                    currentTouchId = null;
+                    
+                    // Возвращаем thumb в центр
+                    thumbElement.style.transform = 'translate(-50%, -50%)';
+                    
+                    // Сброс движения
+                    resetCallback();
+                }
+            };
+
+            padElement.addEventListener('touchstart', start, { passive: false });
+            document.addEventListener('touchmove', move, { passive: false });
+            document.addEventListener('touchend', end, { passive: false });
+            document.addEventListener('touchcancel', end, { passive: false });
+        }
+
+        function moveThumbTo(touchX, touchY, padElement, thumbElement, updateCallback) {
+            const rect = padElement.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            
+            let deltaX = touchX - centerX;
+            let deltaY = touchY - centerY;
+            
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            
+            if (distance > padRadius) {
+                // Ограничиваем движение радиусом
+                const angle = Math.atan2(deltaY, deltaX);
+                deltaX = Math.cos(angle) * padRadius;
+                deltaY = Math.sin(angle) * padRadius;
+            }
+
+            // Перемещаем "большой палец" джойстика
+            thumbElement.style.transform = `translate(${deltaX + 2}px, ${deltaY + 2}px) translate(-50%, -50%)`;
+            
+            // Нормализуем значения от -1 до 1 для использования в логике игры
+            const normalizedX = deltaX / padRadius;
+            const normalizedY = deltaY / padRadius;
+            
+            // Y инвертирован, потому что в JS Y растет вниз (вперед это -Y)
+            updateCallback(normalizedX, -normalizedY); 
+        }
+
+        // ==========================================================
+        // УНИВЕРСАЛЬНОЕ УПРАВЛЕНИЕ ОБЗОРОМ (МЫШЬ / СВОБОДНЫЙ ТАЧ)
+        // ==========================================================
+        
+        function setupUniversalLookControls() {
+            const element = gameContainer; // Элемент, на котором ловим события
+
+            const applyRotation = (deltaX, deltaY) => {
+                // Горизонтальный поворот (вращение игрока по оси Y)
+                player.rotation.y -= deltaX * lookSensitivity;
+
+                // Вертикальный наклон (наклон камеры по оси X)
+                let newXRotation = camera.rotation.x - deltaY * lookSensitivity;
+                // Ограничиваем вертикальный наклон (чтобы не перевернуться)
+                newXRotation = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, newXRotation));
+                camera.rotation.x = newXRotation;
+            };
+
+            // --- Управление Мышью (Desktop) ---
+            let isMouseDown = false;
+            let lastX, lastY;
+
+            element.addEventListener('mousedown', (e) => {
+                // Активируем только если не нажали на джойстик
+                if (!mobileControls.contains(e.target)) {
+                    isMouseDown = true;
+                    lastX = e.clientX;
+                    lastY = e.clientY;
+                    gameContainer.classList.add('looking');
+                    e.preventDefault();
+                }
+            }, false);
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isMouseDown) return;
+
+                const deltaX = e.clientX - lastX;
+                const deltaY = e.clientY - lastY;
+
+                applyRotation(deltaX, deltaY);
+
+                lastX = e.clientX;
+                lastY = e.clientY;
+            }, false);
+
+            document.addEventListener('mouseup', () => {
+                isMouseDown = false;
+                gameContainer.classList.remove('looking');
+            }, false);
+
+            // --- Управление Касанием (Mobile - Свободная область) ---
+            let lookTouchId = null;
+
+            element.addEventListener('touchstart', (e) => {
+                // Находим касание, которое НЕ находится на джойстике движения
+                const touches = Array.from(e.changedTouches);
+                const nonMovePadTouch = touches.find(t => !movePad.contains(t.target));
+                
+                if (nonMovePadTouch && lookTouchId === null) {
+                    lookTouchId = nonMovePadTouch.identifier;
+                    lastX = nonMovePadTouch.clientX;
+                    lastY = nonMovePadTouch.clientY;
+                    e.preventDefault(); // Предотвращаем прокрутку
+                }
+            }, { passive: false });
+
+            element.addEventListener('touchmove', (e) => {
+                if (lookTouchId === null) return;
+                
+                const touch = Array.from(e.changedTouches).find(t => t.identifier === lookTouchId);
+                if (touch) {
+                    const deltaX = touch.clientX - lastX;
+                    const deltaY = touch.clientY - lastY;
+                    
+                    applyRotation(deltaX, deltaY);
+
+                    lastX = touch.clientX;
+                    lastY = touch.clientY;
+                    e.preventDefault();
+                }
+            }, { passive: false });
+
+            element.addEventListener('touchend', (e) => {
+                const touch = Array.from(e.changedTouches).find(t => t.identifier === lookTouchId);
+                if (touch) {
+                    lookTouchId = null;
+                }
+            }, false);
+        }
+        
+        // ==========================================================
+        // ОБРАБОТЧИК РАЗМЕРА ОКНА
+        // ==========================================================
+
+        function onWindowResize() {
+            if (!renderer) return;
+
+            // Определяем, какую область занимает игра
+            let width = gameContainer.clientWidth;
+            let height = gameContainer.clientHeight;
+            
+            if (window.matchMedia("(orientation: landscape) and (max-width: 900px)").matches) {
+                 // В ландшафте: ширина - это оставшееся пространство
+                 width = window.innerWidth - menuContainer.offsetWidth;
+            } else {
+                 // В портрете или на большом экране: игра занимает весь экран
+                 width = window.innerWidth;
+                 height = window.innerHeight;
+            }
+            
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+        }
+
+        // Запускаем обработчик изменения размера
+        window.addEventListener('resize', onWindowResize);
+    </script>
 
 </body>
 </html>
