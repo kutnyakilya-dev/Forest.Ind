@@ -98,10 +98,14 @@
     </style>
 </head>
 <body>
+<!-- Красный баннер для отображения статуса загрузки данных игрока -->
+<div id="loading-banner" class="fixed top-0 left-0 right-0 z-50 p-2 text-center bg-red-700 text-white font-bold">
+    Дождитесь загрузки данных игрока.
+</div>
 
 <div id="app-container">
     <!-- Header/Top Bar с ресурсами -->
-    <header class="bg-dark-surface p-3 shadow-2xl fixed top-0 left-0 right-0 z-10 border-b border-gray-800">
+    <header class="bg-dark-surface p-3 shadow-2xl fixed top-0 left-0 right-0 z-10 border-b border-gray-800" style="margin-top: 2.5rem;">
         <div id="resources-display" class="grid grid-cols-4 gap-3 text-center text-xs">
             <!-- Деньги (Money) -->
             <div class="resource-box bg-dark-card border-b-4 border-yellow-500">
@@ -130,7 +134,7 @@
     </header>
 
     <!-- Content Area (Scrollable) -->
-    <main id="content-area" class="mt-[6rem] p-4">
+    <main id="content-area" class="mt-[9.5rem] p-4">
 
         <!-- 1. Ресурсы (Resources) -->
         <div id="page-resources" class="page p-2">
@@ -178,7 +182,7 @@
             <h2 class="text-2xl font-semibold mb-4 text-gray-100">Рынок и Поставки</h2>
             
             <!-- Кнопка для создания листинга -->
-            <button onclick="openListingModal()" class="w-full py-3 mb-4 bg-green-600 hover:bg-green-500 rounded-xl font-extrabold text-xl transition duration-150 shadow-lg shadow-green-900/40 transform active:scale-95">
+            <button onclick="window.openListingModal()" class="w-full py-3 mb-4 bg-green-600 hover:bg-green-500 rounded-xl font-extrabold text-xl transition duration-150 shadow-lg shadow-green-900/40 transform active:scale-95">
                 + Поставить Ресурс на Рынок
             </button>
             
@@ -204,25 +208,25 @@
     <nav class="fixed bottom-0 left-0 right-0 bg-dark-surface border-t border-gray-700 flex justify-around p-2 shadow-2xl z-20">
         
         <!-- Кнопка 1: Производство (Production) -->
-        <button onclick="showPage('production', this)" class="nav-item flex flex-col items-center p-2 rounded-lg transition duration-200 text-gray-400 active-tab">
+        <button onclick="window.showPage('production', this)" class="nav-item flex flex-col items-center p-2 rounded-lg transition duration-200 text-gray-400 active-tab">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-cog text-primary-accent"><path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"/><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="m2 12h2"/><path d="m20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
             <span class="text-xs mt-1 text-primary-accent">Производство</span>
         </button>
 
         <!-- Кнопка 2: Поставки (Supplies) -->
-        <button onclick="showPage('supplies', this)" class="nav-item flex flex-col items-center p-2 rounded-lg transition duration-200 text-gray-400">
+        <button onclick="window.showPage('supplies', this)" class="nav-item flex flex-col items-center p-2 rounded-lg transition duration-200 text-gray-400">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-truck"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M19 18h2a1 1 0 0 0 1-1v-5a1 1 0 0 0-1-1h-1V6a2 2 0 0 0-2-2h-3v8"/><circle cx="5" cy="18" r="2"/><path d="M10 18h6"/><circle cx="17" cy="18" r="2"/></svg>
             <span class="text-xs mt-1">Поставки</span>
         </button>
 
         <!-- Кнопка 3: Склад (Warehouse) -->
-        <button onclick="showPage('warehouse', this)" class="nav-item flex flex-col items-center p-2 rounded-lg transition duration-200 text-gray-400">
+        <button onclick="window.showPage('warehouse', this)" class="nav-item flex flex-col items-center p-2 rounded-lg transition duration-200 text-gray-400">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-archive"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
             <span class="text-xs mt-1">Склад</span>
         </button>
         
         <!-- Кнопка 4: Ресурсы (Resources) -->
-        <button onclick="showPage('resources', this)" class="nav-item flex flex-col items-center p-2 rounded-lg transition duration-200 text-gray-400">
+        <button onclick="window.showPage('resources', this)" class="nav-item flex flex-col items-center p-2 rounded-lg transition duration-200 text-gray-400">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-database"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg>
             <span class="text-xs mt-1">Ресурсы</span>
         </button>
@@ -230,7 +234,7 @@
 </div>
 
 <!-- Listing Modal (Hidden by default) -->
-<div id="listing-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 z-30 flex items-center justify-center p-4" onclick="if(event.target.id === 'listing-modal') closeListingModal()">
+<div id="listing-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 z-30 flex items-center justify-center p-4" onclick="if(event.target.id === 'listing-modal') window.closeListingModal()">
     <div class="bg-dark-surface rounded-xl shadow-2xl w-full max-w-md p-6 border border-gray-700" onclick="event.stopPropagation()">
         <h3 class="text-2xl font-bold mb-4 text-primary-accent" id="modal-title">Поставить Ресурс на Рынок</h3>
         
@@ -250,7 +254,7 @@
             <input type="range" id="listing-quantity-slider" min="0" max="0" step="0.01" value="0" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer range-lg mb-4">
             <input type="number" id="listing-quantity-input" min="0" step="0.01" value="0.00" class="w-full p-2 bg-dark-card border border-gray-600 rounded-lg text-gray-100 mb-4">
 
-            <button onclick="nextListingStep(2)" class="w-full py-3 bg-primary-accent hover:bg-primary-hover rounded-lg font-bold transition duration-150 transform active:scale-95 disabled:bg-gray-500/50" id="step1-next-button" disabled>
+            <button onclick="window.nextListingStep(2)" class="w-full py-3 bg-primary-accent hover:bg-primary-hover rounded-lg font-bold transition duration-150 transform active:scale-95 disabled:bg-gray-500/50" id="step1-next-button" disabled>
                 Далее
             </button>
         </div>
@@ -262,11 +266,11 @@
             
             <div class="flex space-x-4 mb-4">
                 <!-- Кнопка Продажа -->
-                <button onclick="setListingType('sale')" id="type-sale-btn" class="flex-1 py-3 px-2 border-2 border-gray-600 rounded-lg transition duration-150 font-bold hover:bg-gray-700/50">
+                <button onclick="window.setListingType('sale')" id="type-sale-btn" class="flex-1 py-3 px-2 border-2 border-gray-600 rounded-lg transition duration-150 font-bold hover:bg-gray-700/50">
                     Продажа
                 </button>
                 <!-- Кнопка Аукцион -->
-                <button onclick="setListingType('auction')" id="type-auction-btn" class="flex-1 py-3 px-2 border-2 border-gray-600 rounded-lg transition duration-150 font-bold hover:bg-gray-700/50">
+                <button onclick="window.setListingType('auction')" id="type-auction-btn" class="flex-1 py-3 px-2 border-2 border-gray-600 rounded-lg transition duration-150 font-bold hover:bg-gray-700/50">
                     Аукцион
                 </button>
             </div>
@@ -284,8 +288,8 @@
             </div>
 
             <div class="flex justify-between space-x-3 mt-6">
-                <button onclick="nextListingStep(1)" class="w-1/3 py-3 bg-gray-600 hover:bg-gray-500 rounded-lg font-bold transition duration-150 transform active:scale-95">Назад</button>
-                <button onclick="createListing()" class="w-2/3 py-3 bg-green-600 hover:bg-green-500 rounded-lg font-extrabold transition duration-150 transform active:scale-95 disabled:bg-gray-500/50" id="create-listing-button" disabled>
+                <button onclick="window.nextListingStep(1)" class="w-1/3 py-3 bg-gray-600 hover:bg-gray-500 rounded-lg font-bold transition duration-150 transform active:scale-95">Назад</button>
+                <button onclick="window.createListing()" class="w-2/3 py-3 bg-green-600 hover:bg-green-500 rounded-lg font-extrabold transition duration-150 transform active:scale-95 disabled:bg-gray-500/50" id="create-listing-button" disabled>
                     Разместить
                 </button>
             </div>
@@ -380,6 +384,18 @@
             
             const progress = gameState.clickCounter / gameState.clicksNeeded;
             gatherButton.style.opacity = 0.5 + 0.5 * progress; 
+        }
+
+        // 3. Управление баннером загрузки
+        const loadingBanner = document.getElementById('loading-banner');
+        if (isAuthReady && userId) {
+             loadingBanner.classList.add('hidden');
+             document.querySelector('header').style.marginTop = '0';
+             document.querySelector('main').style.marginTop = '6rem';
+        } else {
+             loadingBanner.classList.remove('hidden');
+             document.querySelector('header').style.marginTop = '2.5rem';
+             document.querySelector('main').style.marginTop = '9.5rem';
         }
     }
     
@@ -486,10 +502,10 @@
 
 
     // --- Modal Control Functions (Globally accessible) ---
-
+    // !!! ИСПРАВЛЕНИЕ: Добавлен префикс 'window.' для доступа из HTML !!!
     window.openListingModal = () => {
         if (!userId) {
-            alertMessage("Дождитесь загрузки данных игрока.", 'red');
+            window.alertMessage("Дождитесь загрузки данных игрока.", 'red');
             return;
         }
 
@@ -519,10 +535,11 @@
         document.getElementById('listing-quantity-slider').max = 0;
         checkStep1Validity();
         
-        nextListingStep(1); // Go to step 1
+        window.nextListingStep(1); // Go to step 1
         document.getElementById('listing-modal').classList.remove('hidden');
     }
 
+    // !!! ИСПРАВЛЕНИЕ: Добавлен префикс 'window.' для доступа из HTML !!!
     window.closeListingModal = () => {
         document.getElementById('listing-modal').classList.add('hidden');
     }
@@ -633,7 +650,7 @@
             if (elapsedTime > hourExpiration && listing.currentBid === 0) {
                 // If the seller views their expired, unsold listing, remove it and refund.
                 if (isSeller) {
-                    removeListing(listing.id, listing.resource, listing.quantity, true);
+                    window.removeListing(listing.id, listing.resource, listing.quantity, true);
                 }
                 return; 
             }
@@ -688,19 +705,19 @@
                 <div class="w-full sm:w-auto mt-2 sm:mt-0">
                     ${!isSeller && !isAuction ? 
                         // Sale: Buy Button
-                        `<button onclick="buyListing('${listing.id}', ${listing.price * listing.quantity})" class="w-full sm:w-auto py-2 px-4 bg-green-600 hover:bg-green-500 rounded-lg font-bold text-sm transform active:scale-95">КУПИТЬ</button>` :
+                        `<button onclick="window.buyListing('${listing.id}', ${listing.price * listing.quantity})" class="w-full sm:w-auto py-2 px-4 bg-green-600 hover:bg-green-500 rounded-lg font-bold text-sm transform active:scale-95">КУПИТЬ</button>` :
                     !isSeller && isAuction && canBid && listing.currentBidderId !== userId ?
                         // Auction: Bid Button (if not the current highest bidder)
-                        `<button onclick="openBidModal('${listing.id}', ${listing.currentBid || listing.startPrice}, '${listing.resource}', ${listing.quantity})" class="w-full sm:w-auto py-2 px-4 bg-purple-600 hover:bg-purple-500 rounded-lg font-bold text-sm transform active:scale-95">СТАВКА</button>` :
+                        `<button onclick="window.openBidModal('${listing.id}', ${listing.currentBid || listing.startPrice}, '${listing.resource}', ${listing.quantity})" class="w-full sm:w-auto py-2 px-4 bg-purple-600 hover:bg-purple-500 rounded-lg font-bold text-sm transform active:scale-95">СТАВКА</button>` :
                     isSeller && isAuction && auctionFinished && listing.currentBid > 0 ?
                          // Resolve button for finished auction (seller action)
-                        `<button onclick="resolveAuction('${listing.id}')" class="w-full sm:w-auto py-2 px-4 bg-red-600 hover:bg-red-500 rounded-lg font-bold text-sm transform active:scale-95">ЗАВЕРШИТЬ</button>` :
+                        `<button onclick="window.resolveAuction('${listing.id}')" class="w-full sm:w-auto py-2 px-4 bg-red-600 hover:bg-red-500 rounded-lg font-bold text-sm transform active:scale-95">ЗАВЕРШИТЬ</button>` :
                     isSeller && isAuction && auctionFinished && listing.currentBid === 0 ?
                         // Remove button for failed auction (seller action)
-                        `<button onclick="removeListing('${listing.id}', '${listing.resource}', ${listing.quantity}, true)" class="w-full sm:w-auto py-2 px-4 bg-gray-600 hover:bg-gray-500 rounded-lg font-bold text-sm transform active:scale-95">ВЕРНУТЬ</button>` :
+                        `<button onclick="window.removeListing('${listing.id}', '${listing.resource}', ${listing.quantity}, true)" class="w-full sm:w-auto py-2 px-4 bg-gray-600 hover:bg-gray-500 rounded-lg font-bold text-sm transform active:scale-95">ВЕРНУТЬ</button>` :
                     isSeller && listing.type === 'sale' ?
                         // Remove button for sale listing (seller action)
-                        `<button onclick="removeListing('${listing.id}', '${listing.resource}', ${listing.quantity}, false)" class="w-full sm:w-auto py-2 px-4 bg-gray-600 hover:bg-gray-500 rounded-lg font-bold text-sm transform active:scale-95">СНЯТЬ</button>` : ''
+                        `<button onclick="window.removeListing('${listing.id}', '${listing.resource}', ${listing.quantity}, false)" class="w-full sm:w-auto py-2 px-4 bg-gray-600 hover:bg-gray-500 rounded-lg font-bold text-sm transform active:scale-95">СНЯТЬ</button>` : ''
                     }
                 </div>
             `;
@@ -756,7 +773,7 @@
 
         if (quantity <= 0 || quantity > gameState.resources[resource]) return;
 
-        closeListingModal();
+        window.closeListingModal();
 
         const newListing = {
             resource: resource,
@@ -783,17 +800,17 @@
         try {
             const listingsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'listings');
             await addDoc(listingsCollection, newListing);
-            alertMessage("Листинг создан и размещен на рынке!", 'green');
+            window.alertMessage("Листинг создан и размещен на рынке!", 'green');
         } catch (e) {
             console.error("Error creating listing:", e);
-            alertMessage("Ошибка при размещении листинга.", 'red');
+            window.alertMessage("Ошибка при размещении листинга.", 'red');
         }
     }
     
     // Function to handle the "BUY" action (for Sale listings)
     window.buyListing = async (listingId, totalCost) => {
         if (!db || !userId || gameState.money < totalCost) {
-            alertMessage("Недостаточно средств для покупки!", 'red');
+            window.alertMessage("Недостаточно средств для покупки!", 'red');
             return;
         }
 
@@ -818,11 +835,11 @@
                 money: increment(totalCost)
             });
             
-            alertMessage(`Куплено ${listing.quantity.toFixed(2)} ${resourceMap[listing.resource]} за ₽${totalCost.toFixed(2)}!`, 'green');
+            window.alertMessage(`Куплено ${listing.quantity.toFixed(2)} ${resourceMap[listing.resource]} за ₽${totalCost.toFixed(2)}!`, 'green');
 
         } catch (e) {
             console.error("Transaction failed:", e);
-            alertMessage("Ошибка при совершении сделки. Повторите попытку.", 'red');
+            window.alertMessage("Ошибка при совершении сделки. Повторите попытку.", 'red');
         }
     }
     
@@ -841,14 +858,14 @@
             });
             
             if (isExpiredReturn) {
-                 alertMessage(`Срок листинга истёк. ${quantity.toFixed(2)} ${resourceMap[resource]} возвращено.`, 'yellow');
+                 window.alertMessage(`Срок листинга истёк. ${quantity.toFixed(2)} ${resourceMap[resource]} возвращено.`, 'yellow');
             } else {
-                 alertMessage(`Листинг снят с рынка. ${quantity.toFixed(2)} ${resourceMap[resource]} возвращено.`, 'yellow');
+                 window.alertMessage(`Листинг снят с рынка. ${quantity.toFixed(2)} ${resourceMap[resource]} возвращено.`, 'yellow');
             }
 
         } catch (e) {
             console.error("Error removing listing:", e);
-            alertMessage("Ошибка при снятии листинга.", 'red');
+            window.alertMessage("Ошибка при снятии листинга.", 'red');
         }
     }
     
@@ -865,12 +882,12 @@
         const bidAmount = parseFloat(bid);
         
         if (isNaN(bidAmount) || bidAmount < minTotalBid) {
-            alertMessage(`Ставка должна быть не менее ₽${minTotalBid.toFixed(2)} (общая стоимость лота).`, 'red');
+            window.alertMessage(`Ставка должна быть не менее ₽${minTotalBid.toFixed(2)} (общая стоимость лота).`, 'red');
             return;
         }
 
         if (gameState.money < bidAmount) {
-             alertMessage(`Недостаточно средств на балансе (₽${bidAmount.toFixed(2)}).`, 'red');
+             window.alertMessage(`Недостаточно средств на балансе (₽${bidAmount.toFixed(2)}).`, 'red');
              return;
         }
 
@@ -882,7 +899,7 @@
         const listing = gameState.listings.find(l => l.id === listingId);
         
         if (!listing || listing.type !== 'auction' || bidAmount <= listing.currentBid || listing.sellerId === userId) {
-            alertMessage("Неверная ставка или вы продавец.", 'red');
+            window.alertMessage("Неверная ставка или вы продавец.", 'red');
             return;
         }
         
@@ -901,7 +918,7 @@
             await updateDoc(previousBidderRef, {
                 money: increment(previousBid)
             });
-            alertMessage(`₽${previousBid.toFixed(2)} возвращено предыдущему участнику торгов.`, 'yellow');
+            window.alertMessage(`₽${previousBid.toFixed(2)} возвращено предыдущему участнику торгов.`, 'yellow');
         }
 
         // 3. Update listing in Firestore
@@ -911,10 +928,10 @@
                 currentBidderId: userId,
                 lastBidTime: new Date()
             });
-            alertMessage(`Вы поставили ₽${bidAmount.toFixed(2)}! Таймер аукциона сброшен.`, 'green');
+            window.alertMessage(`Вы поставили ₽${bidAmount.toFixed(2)}! Таймер аукциона сброшен.`, 'green');
         } catch (e) {
             console.error("Error placing bid:", e);
-            alertMessage("Ошибка при размещении ставки.", 'red');
+            window.alertMessage("Ошибка при размещении ставки.", 'red');
             // NOTE: In a real app, rollback transactions would be needed here.
         }
     }
@@ -924,7 +941,7 @@
         if (!listing || listing.type !== 'auction' || listing.sellerId !== userId) return;
 
         if (!listing.currentBidderId || listing.currentBid === 0) {
-            alertMessage("Аукцион не может быть завершен без ставки.", 'red');
+            window.alertMessage("Аукцион не может быть завершен без ставки.", 'red');
             return;
         }
 
@@ -949,11 +966,11 @@
                 money: increment(finalPrice)
             });
             
-            alertMessage(`Аукцион завершен! ${resourceMap[listing.resource]} x ${listing.quantity.toFixed(2)} продан за ₽${finalPrice.toFixed(2)}.`, 'green');
+            window.alertMessage(`Аукцион завершен! ${resourceMap[listing.resource]} x ${listing.quantity.toFixed(2)} продан за ₽${finalPrice.toFixed(2)}.`, 'green');
 
         } catch (e) {
             console.error("Auction resolution failed:", e);
-            alertMessage("Критическая ошибка при завершении аукциона.", 'red');
+            window.alertMessage("Критическая ошибка при завершении аукциона.", 'red');
         }
     }
 
@@ -1013,6 +1030,7 @@
             if (userId) {
                 document.getElementById('user-id-display').textContent = userId;
             }
+            updateUI(); // Initial UI update to hide the loading banner
 
             // Start listeners after authentication is complete
             loadUserResources();
