@@ -191,9 +191,8 @@
     <script type="module">
 
         // --- КОНСТАНТЫ СЮЖЕТА И ХРАНЕНИЯ ---
-        // LOCAL_STORAGE_KEY больше не используется, так как прогресс не сохраняется.
         
-        // Константы для IndexedDB
+        // Константы для IndexedDB (кэш файлов)
         const DB_NAME = 'MovieGameCacheDB';
         const STORE_NAME = 'assetStore';
         const DB_VERSION = 1;
@@ -261,7 +260,6 @@
         const assetCacheMap = new Map(); 
 
         // --- IndexedDB УТИЛИТЫ ДЛЯ КЭШИРОВАНИЯ ---
-        // Логика кэширования файлов остается, чтобы игра загружалась быстро.
 
         /** Открывает соединение с базой данных IndexedDB. */
         function openDB() {
@@ -275,7 +273,6 @@
                 request.onupgradeneeded = event => {
                     const db = event.target.result;
                     if (!db.objectStoreNames.contains(STORE_NAME)) {
-                        // Создаем хранилище объектов. URL будет ключом.
                         db.createObjectStore(STORE_NAME);
                         console.log('Создано хранилище IndexedDB:', STORE_NAME);
                     }
@@ -305,7 +302,7 @@
                 const store = transaction.objectStore(STORE_NAME);
                 const request = store.get(url);
 
-                request.onsuccess = event => resolve(event.target.result || null); // Возвращаем Blob или null
+                request.onsuccess = event => resolve(event.target.result || null); 
                 request.onerror = event => {
                     console.error(`Ошибка получения ассета ${url}:`, event.target.error);
                     reject(event.target.error);
@@ -313,23 +310,17 @@
             });
         }
         
-        // --- ФУНКЦИИ ПРОГРЕССА (УДАЛЕНЫ) ---
-        // Прогресс не сохраняется. loadProgressLocal и saveProgress удалены.
-
         // --- ПРЕДВАРИТЕЛЬНАЯ ЗАГРУЗКА АССЕТОВ ---
 
         /**
          * Принудительно загружает ассет (видео или аудио) и создает локальный Blob URL.
-         * Сначала проверяет IndexedDB, затем сеть.
          */
         async function preloadAsset(url) {
-            // Пропускаем, если уже закэшировано в оперативной памяти
             if (assetCacheMap.has(url)) return;
 
             let blob;
             let db;
 
-            // Пропускаем плейсхолдеры
             if (!url.includes('http')) {
                 assetCacheMap.set(url, url);
                 return;
@@ -381,7 +372,6 @@
             const preloadPromises = assetUrls.map(url => 
                 preloadAsset(url).then(() => {
                     loadedCount++;
-                    // Обновляем статус, показывая прогресс загрузки
                     loadingStatus.textContent = `Загрузка ассетов: ${loadedCount} из ${totalAssets}...`;
                 })
             );
@@ -400,9 +390,12 @@
             
             // 1. Сцена 'start' (специальный случай для кнопки "НАЧАТЬ")
             if (sceneId === 'start') {
-                videoElement.pause();
+                videoElement.pause(); 
                 videoElement.classList.add('frozen'); 
                 movieInterface.classList.add('active', 'centered'); 
+                
+                // Очищаем старые кнопки
+                choicesContainer.innerHTML = '';
                 
                 // Создаем кнопку "Н А Ч А Т Ь"
                 const button = document.createElement('button');
@@ -411,7 +404,7 @@
                 
                 button.onclick = () => {
                     movieInterface.classList.remove('active', 'centered');
-                    // Переход к первой сцене выбора, без сохранения прогресса
+                    // Переход к первой сцене выбора
                     loadScene('scene_01_a');   
                 };
                 choicesContainer.appendChild(button);
@@ -423,7 +416,7 @@
             videoElement.pause();
             videoElement.classList.add('frozen'); 
 
-            // Очищаем старые кнопки
+            // Очищаем старые кнопки (на случай, если они не были созданы в loadScene)
             choicesContainer.innerHTML = '';
             movieInterface.classList.remove('active', 'centered');
 
@@ -479,10 +472,25 @@
             // 3. Устанавливаем обработчик onended для этой сцены
             videoElement.onended = () => handleSceneEnd(sceneId);
 
+            // --- КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: МЕНЮ 'START' ---
+            if (sceneId === 'start') {
+                // На стартовой сцене мы не ждем окончания видео (которое может не сработать для плейсхолдера),
+                // а сразу вызываем логику end, чтобы отобразить кнопку "Начать".
+                videoElement.onended = null; // Отключаем onended для меню
+                videoElement.play().catch(e => console.log("Ошибка автозапуска видео на стартовом экране."));
+                return handleSceneEnd('start'); 
+            }
+            // ------------------------------------------
+
             videoElement.play().catch(e => {
                 console.log("Ошибка автозапуска видео:", e);
-                // Если не удалось автовоспроизведение, показываем интерфейс
-                movieInterface.classList.add('active');
+                // Если не удалось автовоспроизведение, все равно показываем интерфейс
+                if (scene.choices.length > 0) {
+                     movieInterface.classList.add('active');
+                } else {
+                    // Если нет выбора, но видео не запустилось (например, концовка), принудительно вызываем end
+                    handleSceneEnd(sceneId);
+                }
             });
 
             // 4. Обновляем текст и рендерим кнопки
@@ -497,8 +505,6 @@
                     
                     button.onclick = () => {
                         Array.from(choicesContainer.children).forEach(btn => btn.disabled = true);
-                        
-                        // Прогресс не сохраняется
                         loadScene(choice.nextId);
                     };
                     choicesContainer.appendChild(button);
@@ -568,7 +574,7 @@
                 
                 videoContainer.style.opacity = '1'; 
                 
-                // Всегда начинаем с начальной сцены 'start'
+                // Всегда начинаем с начальной сцены 'start', которая теперь гарантированно показывает кнопку
                 loadScene('start'); 
 
             }, 500); 
