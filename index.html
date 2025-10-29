@@ -3,739 +3,523 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smartphone Studio - 3D Игра</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
-    <!-- Подключаем three.js для 3D графики -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <title>Интерактивное Кино</title>
+    <!-- Подключение Tailwind CSS для стилей -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Установка шрифта Inter -->
     <style>
-        /* Базовый сброс и стили для мобильных устройств */
+        /* Общие стили для максимального погружения */
         body {
             font-family: 'Inter', sans-serif;
+            background-color: #000000; /* Черный фон */
             margin: 0;
             padding: 0;
-            background: linear-gradient(135deg, #1f1c2c 0%, #000000 100%);
+            overflow: hidden; /* Убираем скролл */
             color: #ffffff;
-            display: flex;
-            justify-content: center; /* Центр в портрете */
-            align-items: center;
-            min-height: 100vh;
-            text-align: center;
-            transition: all 0.3s ease;
-            overflow: hidden; /* Скрываем полосы прокрутки */
         }
 
-        /* Основной контейнер приложения (для Flexbox) */
-        #appContainer {
-            display: flex;
-            width: 100%;
-            height: 100vh;
-            justify-content: center;
-            align-items: center;
-        }
-
-        /* ----------------------------------- */
-        /* Стили для Меню (Портрет) */
-        /* ----------------------------------- */
-        .menu-container {
-            width: 90%;
-            max-width: 400px;
-            padding: 0;
-            background-color: transparent;
-            box-shadow: none;
-            border: none;
-            transition: all 0.3s ease;
-        }
-
-        h1 {
-            font-size: 2.5rem;
-            font-weight: 900;
-            color: #ffcc00; 
-            text-shadow: 0 0 10px rgba(255, 204, 0, 0.8);
-            margin-bottom: 40px;
-            letter-spacing: 2px;
-            transition: font-size 0.3s, margin 0.3s;
-        }
-
-        /* Стили для кнопок */
-        .menu-button {
-            display: block;
-            width: 100%;
-            padding: 15px 20px;
-            margin-bottom: 20px;
-            font-size: 1.2rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            cursor: pointer;
-            border: none;
-            border-radius: 12px;
-            transition: all 0.2s ease-in-out;
-            box-shadow: 0 5px 0 0 rgba(0, 0, 0, 0.3);
-            letter-spacing: 1px;
-            outline: none;
-        }
-
-        /* Цвета кнопок */
-        #newGameBtn { background-color: #4CAF50; color: white; border-bottom: 5px solid #388E3C; }
-        #settingsBtn { background-color: #2196F3; color: white; border-bottom: 5px solid #1976D2; }
-        #exitBtn { background-color: #F44336; color: white; border-bottom: 5px solid #D32F2F; }
-        .menu-button:active { transform: translateY(3px); box-shadow: 0 2px 0 0 rgba(0, 0, 0, 0.3); opacity: 0.9; }
-        .menu-button:hover { opacity: 0.9; }
-
-        /* ----------------------------------- */
-        /* Стили для 3D Игры */
-        /* ----------------------------------- */
-        #gameContainer {
-            width: 100%;
-            height: 100vh;
-            position: absolute;
+        /* Видео заполняет весь экран (задний план) */
+        #video-container {
+            position: fixed;
             top: 0;
             left: 0;
-            display: none; /* Скрыт по умолчанию */
-            cursor: grab; /* Курсор для ПК */
+            width: 100vw;
+            height: 100vh;
+            z-index: 10;
+            /* Начинаем с невидимого видео, чтобы избежать вспышки */
+            opacity: 0; 
+            transition: opacity 1s ease;
+        }
+        #game-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* Видео полностью покрывает область */
+            pointer-events: none; /* Запрещает взаимодействие с видео */
+            transition: filter 0.5s ease; /* Добавляем плавный переход для фильтра */
         }
         
-        #gameContainer.looking {
-            cursor: grabbing;
+        /* НОВАЯ КЛАССА: Эффект заморозки и обесцвечивания */
+        #game-video.frozen {
+            filter: grayscale(100%); /* Делает видео черно-белым */
         }
 
-        #gameContainer canvas {
-            display: block;
-        }
-        
-        /* ----------------------------------- */
-        /* Виртуальный Джойстик (Один, слева) */
-        /* ----------------------------------- */
-        #mobileControls {
+        /* Стиль загрузочного экрана */
+        #loading-screen {
             position: fixed;
-            bottom: 10px;
-            left: 10px; /* СЛЕВА */
-            z-index: 100;
-            display: none; /* Скрыт по умолчанию */
-            opacity: 0.85;
-            pointer-events: none; 
+            inset: 0;
+            background-color: #000000;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease-in-out;
+            cursor: default;
+        }
+        /* Анимация мигания для текста "З А Г Р У З К А" */
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
         }
 
-        .joystick-pad {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.4);
-            margin: 0; /* Убрали лишние отступы */
-            position: relative;
-            display: inline-block;
-            pointer-events: auto; 
-            touch-action: none; 
+        /* Интерфейс (контейнер выбора) - только позиционирование */
+        #movie-interface {
+            position: fixed;
+            bottom: 50px; /* Отступ снизу */
+            right: 50px; /* Отступ справа */
+            left: 50px; /* Добавили отступ слева, чтобы можно было центрировать кнопку */
+            z-index: 20;
+            width: auto; /* Ширина по контенту */
+            padding: 0;
+            transform: translateY(100px); /* Скрыто ниже */
+            opacity: 0;
+            visibility: hidden; /* Гарантированно скрыто */
+            transition: transform 0.5s ease, opacity 0.5s ease, visibility 0.5s; 
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end; /* Выравнивание кнопок по правому краю */
         }
 
-        .joystick-thumb {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0.6);
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-
-        /* ----------------------------------- */
-        /* ОПТИМИЗАЦИЯ ДЛЯ ГОРИЗОНТАЛЬНОЙ ОРИЕНТАЦИИ (ЛАНДШАФТ) */
-        /* ----------------------------------- */
-        @media (orientation: landscape) and (max-width: 900px) {
-            #appContainer {
-                justify-content: flex-start;
-                padding: 0;
-            }
-
-            .menu-container {
-                /* Смещаем меню влево */
-                width: 280px;
-                max-width: 280px;
-                min-height: 100vh;
-                padding: 30px 20px;
-                text-align: left;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: flex-start;
-            }
-            
-            h1 {
-                font-size: 2rem;
-                margin-bottom: 30px;
-                text-align: left;
-            }
-
-            .menu-button {
-                width: 95%;
-                padding: 12px 15px;
-                font-size: 1.1rem;
-                margin-bottom: 15px;
-            }
-            
-            #gameContainer {
-                /* Игра занимает оставшееся место справа */
-                position: relative;
-                width: calc(100% - 280px);
-                height: 100vh;
-            }
-            
-            /* Джойстик показывается только в игре и в ландшафте */
-            #mobileControls.game-active {
-                display: flex;
-            }
+        #movie-interface.active {
+            transform: translateY(0); /* Показываем контейнер */
+            opacity: 1;
+            visibility: visible !important; /* Принудительно показываем */
+            pointer-events: auto;
         }
         
-        /* Стили для модального окна */
-        .message-box {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.7); display: none; 
-            justify-content: center; align-items: center; z-index: 1000;
+        /* Специальный стиль для центрирования одной кнопки "Н А Ч А Т Ь" */
+        #movie-interface.centered {
+            align-items: center; /* Центрируем содержимое по горизонтали */
         }
-        .message-content {
-            background-color: #1f1c2c; padding: 30px; border-radius: 15px;
-            max-width: 80%; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
-            border: 2px solid #ffcc00;
+
+
+        /* Адаптивность для мобильных */
+        @media (max-width: 640px) {
+            #movie-interface {
+                bottom: 20px;
+                right: 20px;
+                left: 20px;
+                align-items: center; /* Центрируем кнопки на мобильном */
+            }
+            #choices-container {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
         }
-        .message-content p { font-size: 1.1rem; margin-bottom: 20px; }
-        .message-content button {
-            background-color: #ffcc00; color: #000000; padding: 10px 20px;
-            border: none; border-radius: 8px; font-weight: 700; cursor: pointer;
-            transition: background-color 0.1s;
+
+        /* Стиль кнопок: Белый текст с черным ореолом (текст-тень) */
+        .choice-btn {
+            background-color: transparent;
+            border: none;
+            color: #ffffff; /* Белый текст */
+            text-align: right;
+            font-weight: 700; /* Жирный текст */
+            font-size: 1.25rem; /* Увеличенный размер */
+            padding: 0.5rem 0.75rem; /* Минимальный padding для удобства клика */
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap; /* Чтобы текст не переносился, если помещается */
+            /* Черная тень вокруг текста для контраста */
+            text-shadow: 0 0 4px #000000, 0 0 4px #000000, 0 0 6px #000000;
+        }
+        .choice-btn:hover {
+            /* Усиление свечения (белая тень) и черного ореола */
+            text-shadow: 0 0 15px #ffffff, 0 0 10px #000000, 0 0 8px #000000;
+            background-color: rgba(0, 0, 0, 0.4); /* Легкая темная подсветка фона при наведении */
+            transform: scale(1.05); /* Небольшое увеличение */
         }
     </style>
 </head>
 <body>
 
-    <!-- Модальное окно для сообщений -->
-    <div id="messageBox" class="message-box">
-        <div class="message-content">
-            <p id="messageText"></p>
-            <button onclick="closeMessageBox()">OK</button>
-        </div>
+    <!-- Загрузочный экран -->
+    <div id="loading-screen">
+        <p id="loading-title" class="text-4xl text-white font-bold tracking-widest animate-pulse">З А Г Р У З К А</p>
+        <!-- Индикатор прогресса, если нужно, но пока просто статус -->
+        <p id="loading-status" class="text-sm text-gray-400 mt-4"></p>
     </div>
     
-    <div id="appContainer">
-        <!-- Основной контейнер меню -->
-        <div id="menuContainer" class="menu-container">
-            <h1>Smartphone Studio</h1>
-            
-            <button id="newGameBtn" class="menu-button" onclick="handleNewGame()">
-                Новая игра
-            </button>
+    <!-- Музыка загрузки -->
+    <audio id="loading-audio" loop src="https://files.catbox.moe/e81wbk.mp3"></audio>
 
-            <button id="settingsBtn" class="menu-button" onclick="handleSettings()">
-                Настройки
-            </button>
+    <!-- Контейнер для видео (Задний план) -->
+    <div id="video-container">
+        <video id="game-video" muted>
+            Ваш браузер не поддерживает тег video.
+        </video>
+    </div>
 
-            <button id="exitBtn" class="menu-button" onclick="handleExit()">
-                Выход
-            </button>
-        </div>
+    <!-- Новые аудио-элементы для звуковых эффектов и фоновой музыки сцен -->
+    <audio id="scene-effect-audio" preload="auto"></audio>
+    <audio id="scene-music-audio" preload="auto" loop></audio>
+
+    <!-- Интерфейс игры (Контейнер только для кнопок выбора) -->
+    <div id="movie-interface"> 
         
-        <!-- Контейнер для 3D игры -->
-        <div id="gameContainer">
-            <!-- Сюда three.js вставит canvas -->
-        </div>
-    </div>
-    
-    <!-- Виртуальный Джойстик для мобильного управления -->
-    <div id="mobileControls">
-        <!-- Левый джойстик (Движение: W/S/A/D) -->
-        <div id="movePad" class="joystick-pad">
-            <div id="moveThumb" class="joystick-thumb"></div>
+        <!-- Контейнер для кнопок выбора -->
+        <div id="choices-container" class="flex flex-col space-y-3 w-full">
+            
+            <!-- Скрытые элементы для отладки -->
+            <div class="hidden">
+                 <div id="narrative-text"></div> 
+            </div>
         </div>
     </div>
 
-    <script>
-        // Глобальные переменные для three.js
-        let scene, camera, renderer, player;
-        let clock = new THREE.Clock();
-        let controls = {
-            forward: false, backward: false, left: false, right: false,
-            moveX: 0, moveZ: 0
+    <script type="module">
+
+        // Определяем структуру сюжета игры
+        const story = {
+            // Первая сцена - теперь без вариантов выбора (только кнопка "Н А Ч А Т Ь")
+            'start': {
+                videoUrl: 'https://files.catbox.moe/gwba6a.mp4', 
+                text: 'Начальная сцена, нет выбора.',
+                choices: [] 
+            },
+            // Сцена 01: Теперь ведет к новой переходной сцене
+            'scene_01': { 
+                videoUrl: 'https://files.catbox.moe/xsoldv.mp4',
+                text: 'Продолжение первой сцены.',
+                choices: [
+                    // Автоматический переход к новой сцене
+                    { text: 'Продолжить (Переход)', nextId: 'scene_01_transition' } 
+                ]
+            },
+            // НОВАЯ СЦЕНА: Видео, которое просил Илья, с автоматическим переходом
+            'scene_01_transition': {
+                videoUrl: 'https://files.catbox.moe/m3px4x.mp4', // НОВЫЙ URL
+                text: 'Короткий переход к месту, где нужно принимать решение.',
+                choices: [
+                    // Автоматический переход к сцене с выбором
+                    { text: 'Продолжить (Сцена 1A)', nextId: 'scene_01_a' } 
+                ]
+            },
+            // Сцена 1A: Взяли фонарик (Сцена с РЕАЛЬНЫМ выбором - будет серой и ждать клика)
+            'scene_01_a': {
+                videoUrl: 'https://archive.org/download/BigBuckBunny_124/Content/big_buck_bunny_720p_stereo.mp4',
+                text: 'Фонарик освещает дверь с кодовым замком. Вдалеке слышны шаги. Вы попробуете ввести код или спрятаться?',
+                choices: [
+                    { text: 'Ввести случайный код (4 цифры)', nextId: 'scene_02_fail' },
+                    { text: 'Спрятаться за ящиками', nextId: 'scene_02_success' }
+                ]
+            },
+            // Сцена без выбора (если дойдет сюда, то зависнет на сером экране, как финал)
+            'scene_01_b': {
+                videoUrl: 'https://archive.org/download/ElephantsDream/ed_hd.mp4',
+                text: 'Карта показывает выход, но вы не видите, куда идти в темноте. Шаги приближаются. Что делать?',
+                choices: []
+            },
+            'scene_02_success': {
+                videoUrl: 'https://archive.org/download/BigBuckBunny_124/Content/big_buck_bunny_720p_stereo.mp4',
+                text: 'Вам удалось избежать опасности! Вы находите ключ от двери. Теперь вы можете выйти.',
+                choices: [
+                    { text: 'Использовать ключ и выйти', nextId: 'end_win' }
+                ]
+            },
+            'scene_02_fail': {
+                videoUrl: 'https://archive.org/download/ElephantsDream/ed_hd.mp4',
+                text: 'Выбор был неудачным. Дверь не открывается, а шаги достигают вашей комнаты. Игра окончена.',
+                choices: [
+                    { text: 'Начать новую игру', nextId: 'start' }
+                ],
+                // АУДИО ЭФФЕКТ ДЛЯ ПРЕДПОСЛЕДНЕГО КЛИПА
+                effectAudio: 'https://files.catbox.moe/zuo7xz.mp3' 
+            },
+            'end_win': {
+                videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
+                text: 'Поздравляем! Вы прошли через все испытания и выбрались на свободу. Продолжение следует...',
+                choices: [
+                    { text: 'Начать новую игру', nextId: 'start' }
+                ],
+                // ФОНОВАЯ МУЗЫКА ДЛЯ ПОСЛЕДНЕГО КАДРА
+                musicAudio: 'https://files.catbox.moe/64kb40.mp3',
+                musicVolume: 0.3 // 30% громкости
+            }
         };
-        const playerSpeed = 0.05;
-        const lookSensitivity = 0.005; // Чувствительность для обзора
-        const gameContainer = document.getElementById('gameContainer');
-        const menuContainer = document.getElementById('menuContainer');
-        const mobileControls = document.getElementById('mobileControls');
 
-        // ==========================================================
-        // UI И ОБРАБОТЧИКИ МЕНЮ
-        // ==========================================================
+        const LOCAL_STORAGE_KEY = 'movieGameProgress';
 
-        function showMessageBox(text) {
-            const box = document.getElementById('messageBox');
-            const messageText = document.getElementById('messageText');
-            messageText.textContent = text;
-            box.style.display = 'flex';
-        }
+        // --- Элементы DOM ---
+        const loadingScreen = document.getElementById('loading-screen');
+        const loadingTitle = document.getElementById('loading-title'); 
+        const loadingStatus = document.getElementById('loading-status');
+        const loadingAudio = document.getElementById('loading-audio');
+        const movieInterface = document.getElementById('movie-interface');
+        const videoContainer = document.getElementById('video-container');
+        const videoElement = document.getElementById('game-video');
+        const choicesContainer = document.getElementById('choices-container');
+        const narrativeText = document.getElementById('narrative-text'); 
+        
+        // Новые аудио-элементы
+        const sceneEffectAudio = document.getElementById('scene-effect-audio');
+        const sceneMusicAudio = document.getElementById('scene-music-audio');
+        
+        // Маппинг для хранения Blob URL (локально закэшированных ссылок)
+        const assetCacheMap = new Map(); 
 
-        function closeMessageBox() {
-            document.getElementById('messageBox').style.display = 'none';
-        }
+        // --- Функции сохранения и загрузки состояния (localStorage) ---
 
-        function handleNewGame() {
-            menuContainer.style.display = 'none';
-            gameContainer.style.display = 'block';
-            mobileControls.classList.add('game-active'); // Показываем джойстик в ландшафте
-            initGame();
-            window.addEventListener('resize', onWindowResize);
-            
-            // Если мы в ландшафте, обновить размер, чтобы игра заняла свое место
-            if (window.matchMedia("(orientation: landscape) and (max-width: 900px)").matches) {
-                onWindowResize();
+        function saveProgress(sceneId) {
+            try {
+                localStorage.setItem(LOCAL_STORAGE_KEY, sceneId);
+                console.log(`Прогресс сохранен локально: ${sceneId}`);
+            } catch (error) {
+                console.error("Ошибка при сохранении локального прогресса:", error);
             }
         }
 
-        function handleSettings() {
-            showMessageBox("Открытие настроек. Настройте звук и управление!");
+        function loadProgressLocal() {
+            try {
+                const savedSceneId = localStorage.getItem(LOCAL_STORAGE_KEY);
+                return savedSceneId || 'start';
+            } catch (error) {
+                console.error("Ошибка при загрузке локального прогресса, начинаем с 'start'.", error);
+                return 'start';
+            }
         }
 
-        function handleExit() {
-            showMessageBox("Пока! Попробуем закрыть окно...");
-            setTimeout(() => { window.close(); }, 1000);
+        // --- Предварительная загрузка ассетов (с принудительным кэшированием) ---
+
+        /**
+         * Принудительно загружает ассет (видео или аудио) и создает локальный Blob URL.
+         * @param {string} url - Исходный URL ассета.
+         * @returns {Promise<void>} - Промис, который завершается после кэширования.
+         */
+        function preloadAsset(url) {
+            // Пропускаем, если уже закэшировано
+            if (assetCacheMap.has(url)) return Promise.resolve();
+
+            return fetch(url)
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return response.blob().then(blob => {
+                        // Создаем локальный Blob URL и сохраняем его в мапе
+                        const blobUrl = URL.createObjectURL(blob);
+                        assetCacheMap.set(url, blobUrl);
+                    });
+                })
+                .catch(error => {
+                    console.error(`Ошибка при принудительном кэшировании ассета: ${url}. Будет использована исходная ссылка.`, error);
+                    assetCacheMap.set(url, url); // Fallback: сохраняем исходный URL
+                });
         }
 
-        document.getElementById('messageBox').addEventListener('click', function(event) {
-            if (event.target === this) { closeMessageBox(); }
+        async function preloadAssets() {
+            
+            // Собираем все уникальные URL-адреса (видео и аудио)
+            const allUrls = new Set();
+            Object.values(story).forEach(scene => {
+                if (scene.videoUrl) allUrls.add(scene.videoUrl);
+                if (scene.effectAudio) allUrls.add(scene.effectAudio);
+                if (scene.musicAudio) allUrls.add(scene.musicAudio);
+            });
+            
+            const assetUrls = Array.from(allUrls).filter(url => url && url.includes('http'));
+
+            const totalAssets = assetUrls.length;
+            let loadedCount = 0;
+
+            const preloadPromises = assetUrls.map(url => 
+                preloadAsset(url).then(() => {
+                    loadedCount++;
+                    // Обновляем статус, показывая прогресс загрузки
+                    loadingStatus.textContent = `Загрузка ассетов: ${loadedCount} из ${totalAssets}...`;
+                })
+            );
+            
+            // Начальный статус
+            loadingStatus.textContent = `Загрузка ассетов: ${loadedCount} из ${totalAssets}...`;
+            
+            await Promise.all(preloadPromises);
+            
+            loadingStatus.textContent = 'Загрузка завершена. Ждите клика...';
+        }
+
+        // --- Обработчик окончания сцены ---
+
+        function handleSceneEnd(sceneId) {
+            const scene = story[sceneId];
+            
+            // 1. Замораживаем и делаем серым
+            videoElement.pause();
+            videoElement.classList.add('frozen'); 
+
+            // 2. Очищаем старые кнопки
+            choicesContainer.innerHTML = '';
+            movieInterface.classList.remove('active', 'centered');
+
+            const hasManualChoices = scene.choices.length > 0 && !scene.choices[0].text.startsWith('Продолжить');
+            const hasAutoTransitionChoice = scene.choices.length === 1 && scene.choices[0].text.startsWith('Продолжить');
+
+            // --- СПЕЦИАЛЬНЫЙ СЛУЧАЙ: Сцена 'start' (кнопка "Н А Ч А Т Ь") ---
+            if (sceneId === 'start') {
+                movieInterface.classList.add('active', 'centered'); 
+                
+                const button = document.createElement('button');
+                button.textContent = 'Н А Ч А Т Ь';
+                button.className = 'choice-btn transition duration-200 ease-in-out text-2xl px-8 py-4'; 
+                
+                button.onclick = () => {
+                    movieInterface.classList.remove('active', 'centered');
+                    saveProgress('scene_01');
+                    loadScene('scene_01');
+                };
+                choicesContainer.appendChild(button);
+                return;
+            }
+
+            // --- СТАНДАРТНЫЙ ВЫБОР (Ручной переход) ---
+            if (scene.choices.length > 1 || hasManualChoices) {
+                // Если есть настоящий выбор, показываем кнопки и ждем клика
+                movieInterface.classList.remove('centered');
+                movieInterface.classList.add('active');
+                // Кнопки уже созданы в loadScene, просто показываем интерфейс
+                return;
+            }
+
+            // --- АВТОМАТИЧЕСКИЙ ПЕРЕХОД (Нет выбора или только авто-выбор) ---
+            if (scene.choices.length === 0 || hasAutoTransitionChoice) {
+                
+                // Определяем следующую сцену
+                const nextId = hasAutoTransitionChoice ? scene.choices[0].nextId : 'start'; // Если нет, идем в начало
+
+                console.log(`Автоматический переход к сцене: ${nextId}`);
+                
+                // Немедленно включаем следующую сцену (с небольшой задержкой для удобства)
+                setTimeout(() => {
+                    saveProgress(nextId);
+                    loadScene(nextId);
+                }, 500); 
+                return;
+            }
+        }
+
+        // --- Загрузка сцены ---
+
+        function loadScene(sceneId) {
+            const scene = story[sceneId];
+            if (!scene) {
+                console.error(`Сцена с ID "${sceneId}" не найдена. Переход на 'start'.`);
+                return loadScene('start');
+            }
+            
+            // 1. Скрываем интерфейс и убираем серый фильтр
+            movieInterface.classList.remove('active', 'centered');
+            videoElement.classList.remove('frozen'); // Убираем эффект серого цвета
+            
+            // --- УПРАВЛЕНИЕ АУДИО СЦЕНЫ ---
+            
+            // Останавливаем все сценные аудио перед загрузкой новой сцены
+            sceneEffectAudio.pause();
+            sceneEffectAudio.currentTime = 0;
+            sceneMusicAudio.pause();
+            sceneMusicAudio.currentTime = 0;
+            
+            if (scene.effectAudio) {
+                // Используем закэшированный URL
+                sceneEffectAudio.src = assetCacheMap.get(scene.effectAudio) || scene.effectAudio;
+                sceneEffectAudio.load();
+                sceneEffectAudio.play().catch(e => console.warn("Не удалось запустить эффект аудио:", e));
+            }
+
+            if (scene.musicAudio) {
+                // Используем закэшированный URL
+                sceneMusicAudio.src = assetCacheMap.get(scene.musicAudio) || scene.musicAudio;
+                // Устанавливаем громкость (по умолчанию 1.0, если не указана)
+                sceneMusicAudio.volume = scene.musicVolume !== undefined ? scene.musicVolume : 1.0; 
+                sceneMusicAudio.load();
+                sceneMusicAudio.play().catch(e => console.warn("Не удалось запустить фоновую музыку:", e));
+            }
+            // -----------------------------
+            
+            // 2. Обновляем видео и запускаем
+            // Берем Blob URL из кэша (или исходный URL, если кэширование не удалось)
+            videoElement.src = assetCacheMap.get(scene.videoUrl) || scene.videoUrl;
+            videoElement.load();
+            videoElement.muted = false; 
+            
+            // 3. Устанавливаем обработчик onended для этой сцены
+            videoElement.onended = () => handleSceneEnd(sceneId);
+
+            videoElement.play().catch(e => {
+                console.log("Ошибка автозапуска видео:", e);
+                // Если не удалось автовоспроизведение, показываем интерфейс, чтобы пользователь нажал Play вручную
+                movieInterface.classList.add('active');
+            });
+
+            // 4. Обновляем текст и рендерим кнопки (если они есть)
+            narrativeText.textContent = scene.text; 
+            choicesContainer.innerHTML = ''; // Очищаем контейнер
+
+            if (scene.choices && scene.choices.length > 0) {
+                scene.choices.forEach(choice => {
+                    const button = document.createElement('button');
+                    button.textContent = choice.text;
+                    button.className = 'choice-btn transition duration-200 ease-in-out text-base text-right';
+                    
+                    button.onclick = () => {
+                        Array.from(choicesContainer.children).forEach(btn => btn.disabled = true);
+                        
+                        saveProgress(choice.nextId);
+                        loadScene(choice.nextId);
+                    };
+                    choicesContainer.appendChild(button);
+                });
+            }
+            // Кнопки пока не показываются, они будут показаны только после onended
+        }
+
+        // --- Функции для экрана готовности ---
+
+        function showReadyScreen() {
+            loadingTitle.textContent = 'Н А Ж М И Т Е';
+            loadingTitle.classList.remove('animate-pulse');
+            loadingStatus.textContent = 'чтобы начать';
+            
+            loadingScreen.style.cursor = 'pointer';
+            loadingScreen.addEventListener('click', startGame, { once: true });
+        }
+        
+        function startGame() {
+            // 1. Запуск музыки
+            loadingAudio.play().catch(e => {
+                console.warn("Не удалось запустить музыку:", e);
+            });
+            
+            // 2. Плавное скрытие загрузочного экрана
+            loadingScreen.style.opacity = '0';
+            
+            setTimeout(() => {
+                loadingScreen.remove();
+                loadingAudio.pause(); // Останавливаем загрузочную музыку
+                
+                videoContainer.style.opacity = '1'; 
+                
+                const currentSceneId = loadProgressLocal();
+                loadScene(currentSceneId);
+
+            }, 500); 
+        }
+
+
+        // --- Инициализация игры ---
+
+        async function initGame() {
+            await preloadAssets(); 
+            showReadyScreen();
+        }
+
+        // Запускаем музыку сразу (она будет ждать клика)
+        loadingAudio.play().catch(e => {
+            console.log("Музыка загрузки не запустилась автоматически (нужен клик).");
         });
-
-        // ==========================================================
-        // THREE.JS ИГРОВАЯ ЛОГИКА
-        // ==========================================================
-
-        function initGame() {
-            // 1. Сцена и Рендерер
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x87ceeb); // Небо
-
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(gameContainer.clientWidth, gameContainer.clientHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            gameContainer.appendChild(renderer.domElement);
-
-            // 2. Камера (Первый вид)
-            camera = new THREE.PerspectiveCamera(75, gameContainer.clientWidth / gameContainer.clientHeight, 0.1, 1000);
-            camera.rotation.order = 'YXZ'; // Для правильного вращения по Y
-
-            // Добавляем капсулу игрока для физики (визуально невидима)
-            player = new THREE.Object3D();
-            player.position.set(0, 1.7, 0); // Высота глаз 1.7
-            scene.add(player);
-            player.add(camera); // Камера следует за игроком
-
-            // 3. Свет
-            const ambientLight = new THREE.AmbientLight(0x404040, 2);
-            scene.add(ambientLight);
-
-            const sunLight = new THREE.DirectionalLight(0xffffff, 3);
-            sunLight.position.set(50, 80, 50);
-            sunLight.castShadow = true;
-            sunLight.shadow.mapSize.width = 2048;
-            sunLight.shadow.mapSize.height = 2048;
-            sunLight.shadow.camera.near = 1;
-            sunLight.shadow.camera.far = 200;
-            sunLight.shadow.camera.left = -50;
-            sunLight.shadow.camera.right = 50;
-            sunLight.shadow.camera.top = 50;
-            sunLight.shadow.camera.bottom = -50;
-            scene.add(sunLight);
-
-            // 4. Создание окружения
-            createEnvironment();
-
-            // 5. Инициализация управления
-            setupKeyboardControls();
-            setupTouchControls(); // Джойстик движения
-            setupUniversalLookControls(); // Обзор (мышь/свободный тач)
-
-            // 6. Запуск цикла анимации
-            animate();
-            
-            // Первоначальный ресайз
-            onWindowResize();
-        }
-
-        function createEnvironment() {
-            // Трава/Земля
-            const groundGeometry = new THREE.PlaneGeometry(200, 200);
-            const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x6b8e23 }); // Цвет травы
-            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-            ground.rotation.x = -Math.PI / 2;
-            ground.receiveShadow = true;
-            scene.add(ground);
-
-            // Река (Простая плоскость ниже уровня земли)
-            const waterGeometry = new THREE.PlaneGeometry(10, 100);
-            const waterMaterial = new THREE.MeshLambertMaterial({ color: 0x00aaff, transparent: true, opacity: 0.7 });
-            const river = new THREE.Mesh(waterGeometry, waterMaterial);
-            river.rotation.x = -Math.PI / 2;
-            river.position.y = -0.1; 
-            river.position.z = 0;
-            scene.add(river);
-            
-            // Простые Объекты (Деревья, Скалы, Облака)
-            const count = 30; // Количество объектов
-            for (let i = 0; i < count; i++) {
-                const x = THREE.MathUtils.randFloatSpread(150);
-                const z = THREE.MathUtils.randFloatSpread(150);
-                
-                // Избегаем реки (координаты X от -5 до 5)
-                if (x > -5 && x < 5) continue; 
-                
-                if (Math.random() < 0.6) {
-                    createSimpleTree(x, z);
-                } else {
-                    createSimpleRock(x, z);
-                }
-            }
-            
-            // Облака
-            for (let i = 0; i < 10; i++) {
-                createCloud(
-                    THREE.MathUtils.randFloatSpread(100), // x
-                    THREE.MathUtils.randFloat(20, 30),   // y (высоко)
-                    THREE.MathUtils.randFloatSpread(100)  // z
-                );
-            }
-        }
-
-        function createSimpleTree(x, z) {
-            // Ствол
-            const trunkGeometry = new THREE.CylinderGeometry(0.2, 0.2, 3, 8);
-            const trunkMaterial = new THREE.MeshLambertMaterial({ color: 0x8b4513 }); // Коричневый
-            const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
-            trunk.position.set(x, 1.5, z);
-            trunk.castShadow = true;
-            trunk.receiveShadow = true;
-            
-            // Крона
-            const leavesGeometry = new THREE.ConeGeometry(1.5, 3, 8);
-            const leavesMaterial = new THREE.MeshLambertMaterial({ color: 0x008000 }); // Зеленый
-            const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
-            leaves.position.set(x, 4.5, z);
-            leaves.castShadow = true;
-            
-            scene.add(trunk);
-            scene.add(leaves);
-        }
-
-        function createSimpleRock(x, z) {
-            const rockGeometry = new THREE.SphereGeometry(THREE.MathUtils.randFloat(0.5, 1.5), 8, 8);
-            const rockMaterial = new THREE.MeshLambertMaterial({ color: 0xa9a9a9 }); // Серый
-            const rock = new THREE.Mesh(rockGeometry, rockMaterial);
-            rock.position.set(x, rock.geometry.parameters.radius, z);
-            rock.castShadow = true;
-            rock.receiveShadow = true;
-            scene.add(rock);
-        }
         
-        function createCloud(x, y, z) {
-            const cloud = new THREE.Group();
-            const material = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 });
-            
-            // Составляем облако из нескольких сфер
-            for (let i = 0; i < 5; i++) {
-                const size = THREE.MathUtils.randFloat(1, 3);
-                const geometry = new THREE.SphereGeometry(size, 8, 8);
-                const mesh = new THREE.Mesh(geometry, material);
-                
-                mesh.position.set(
-                    THREE.MathUtils.randFloat(-2, 2),
-                    THREE.MathUtils.randFloat(-1, 1),
-                    THREE.MathUtils.randFloat(-2, 2)
-                );
-                mesh.castShadow = false;
-                cloud.add(mesh);
-            }
-            
-            cloud.position.set(x, y, z);
-            scene.add(cloud);
-        }
-
-
-        function animate() {
-            requestAnimationFrame(animate);
-
-            const delta = clock.getDelta();
-            updatePlayerMovement(delta);
-
-            renderer.render(scene, camera);
-        }
-
-        // ==========================================================
-        // ОБНОВЛЕНИЕ ДВИЖЕНИЯ ИГРОКА (Общее для клавиатуры и джойстика)
-        // ==========================================================
-        
-        function updatePlayerMovement(delta) {
-            const actualSpeed = playerSpeed * delta * 60; // Учитываем delta
-            
-            const moveDelta = new THREE.Vector3();
-            
-            // Клавиатура (WSAD)
-            if (controls.forward) moveDelta.z -= 1;
-            if (controls.backward) moveDelta.z += 1;
-            if (controls.left) moveDelta.x -= 1;
-            if (controls.right) moveDelta.x += 1;
-            
-            // Джойстик
-            if (controls.moveZ > 0) moveDelta.z -= 1;
-            if (controls.moveZ < 0) moveDelta.z += 1;
-            if (controls.moveX < 0) moveDelta.x -= 1;
-            if (controls.moveX > 0) moveDelta.x += 1;
-
-
-            if (moveDelta.lengthSq() > 0) {
-                moveDelta.normalize().multiplyScalar(actualSpeed);
-                
-                // Перемещение относительно направления взгляда игрока (player)
-                player.translateX(moveDelta.x);
-                player.translateZ(moveDelta.z);
-            }
-        }
-
-        // ==========================================================
-        // УПРАВЛЕНИЕ КЛАВИАТУРОЙ (WSAD)
-        // ==========================================================
-        
-        function setupKeyboardControls() {
-            document.addEventListener('keydown', (event) => {
-                switch (event.code) {
-                    case 'KeyW': controls.forward = true; break;
-                    case 'KeyS': controls.backward = true; break;
-                    case 'KeyA': controls.left = true; break;
-                    case 'KeyD': controls.right = true; break;
-                }
-            });
-
-            document.addEventListener('keyup', (event) => {
-                switch (event.code) {
-                    case 'KeyW': controls.forward = false; break;
-                    case 'KeyS': controls.backward = false; break;
-                    case 'KeyA': controls.left = false; break;
-                    case 'KeyD': controls.right = false; break;
-                }
-            });
-        }
-        
-        // ==========================================================
-        // УПРАВЛЕНИЕ КАСАНИЕМ (МОБИЛЬНЫЙ ДЖОЙСТИК)
-        // ==========================================================
-
-        const movePad = document.getElementById('movePad');
-        const moveThumb = document.getElementById('moveThumb');
-        const padRadius = 60;
-
-        function setupTouchControls() {
-            // Настройка джойстика движения
-            setupMovePad(movePad, moveThumb, (x, y) => {
-                controls.moveX = x;
-                controls.moveZ = y;
-            }, () => {
-                controls.moveX = 0;
-                controls.moveZ = 0;
-            });
-        }
-
-        // Вспомогательная функция для настройки джойстика движения
-        function setupMovePad(padElement, thumbElement, updateCallback, resetCallback) {
-            let active = false;
-            let currentTouchId = null;
-
-            const start = (event) => {
-                // Если это не мобильный режим в ландшафте, игнорируем
-                if (!window.matchMedia("(orientation: landscape) and (max-width: 900px)").matches) return;
-                
-                const touch = Array.from(event.changedTouches).find(t => t.target === padElement || padElement.contains(t.target));
-                if (touch && !active) {
-                    active = true;
-                    currentTouchId = touch.identifier;
-                    moveThumbTo(touch.clientX, touch.clientY, padElement, thumbElement, updateCallback);
-                    event.preventDefault(); // Предотвращаем прокрутку
-                }
-            };
-
-            const move = (event) => {
-                if (!active || currentTouchId === null) return;
-                const touch = Array.from(event.changedTouches).find(t => t.identifier === currentTouchId);
-                if (touch) {
-                    moveThumbTo(touch.clientX, touch.clientY, padElement, thumbElement, updateCallback);
-                    event.preventDefault();
-                }
-            };
-
-            const end = (event) => {
-                if (!active) return;
-                const touch = Array.from(event.changedTouches).find(t => t.identifier === currentTouchId);
-                if (touch) {
-                    active = false;
-                    currentTouchId = null;
-                    
-                    // Возвращаем thumb в центр
-                    thumbElement.style.transform = 'translate(-50%, -50%)';
-                    
-                    // Сброс движения
-                    resetCallback();
-                }
-            };
-
-            padElement.addEventListener('touchstart', start, { passive: false });
-            document.addEventListener('touchmove', move, { passive: false });
-            document.addEventListener('touchend', end, { passive: false });
-            document.addEventListener('touchcancel', end, { passive: false });
-        }
-
-        function moveThumbTo(touchX, touchY, padElement, thumbElement, updateCallback) {
-            const rect = padElement.getBoundingClientRect();
-            const centerX = rect.left + rect.width / 2;
-            const centerY = rect.top + rect.height / 2;
-            
-            let deltaX = touchX - centerX;
-            let deltaY = touchY - centerY;
-            
-            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-            
-            if (distance > padRadius) {
-                // Ограничиваем движение радиусом
-                const angle = Math.atan2(deltaY, deltaX);
-                deltaX = Math.cos(angle) * padRadius;
-                deltaY = Math.sin(angle) * padRadius;
-            }
-
-            // Перемещаем "большой палец" джойстика
-            thumbElement.style.transform = `translate(${deltaX + 2}px, ${deltaY + 2}px) translate(-50%, -50%)`;
-            
-            // Нормализуем значения от -1 до 1 для использования в логике игры
-            const normalizedX = deltaX / padRadius;
-            const normalizedY = deltaY / padRadius;
-            
-            // Y инвертирован, потому что в JS Y растет вниз (вперед это -Y)
-            updateCallback(normalizedX, -normalizedY); 
-        }
-
-        // ==========================================================
-        // УНИВЕРСАЛЬНОЕ УПРАВЛЕНИЕ ОБЗОРОМ (МЫШЬ / СВОБОДНЫЙ ТАЧ)
-        // ==========================================================
-        
-        function setupUniversalLookControls() {
-            const element = gameContainer; // Элемент, на котором ловим события
-
-            const applyRotation = (deltaX, deltaY) => {
-                // Горизонтальный поворот (вращение игрока по оси Y)
-                player.rotation.y -= deltaX * lookSensitivity;
-
-                // Вертикальный наклон (наклон камеры по оси X)
-                let newXRotation = camera.rotation.x - deltaY * lookSensitivity;
-                // Ограничиваем вертикальный наклон (чтобы не перевернуться)
-                newXRotation = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, newXRotation));
-                camera.rotation.x = newXRotation;
-            };
-
-            // --- Управление Мышью (Desktop) ---
-            let isMouseDown = false;
-            let lastX, lastY;
-
-            element.addEventListener('mousedown', (e) => {
-                // Активируем только если не нажали на джойстик
-                if (!mobileControls.contains(e.target)) {
-                    isMouseDown = true;
-                    lastX = e.clientX;
-                    lastY = e.clientY;
-                    gameContainer.classList.add('looking');
-                    e.preventDefault();
-                }
-            }, false);
-
-            document.addEventListener('mousemove', (e) => {
-                if (!isMouseDown) return;
-
-                const deltaX = e.clientX - lastX;
-                const deltaY = e.clientY - lastY;
-
-                applyRotation(deltaX, deltaY);
-
-                lastX = e.clientX;
-                lastY = e.clientY;
-            }, false);
-
-            document.addEventListener('mouseup', () => {
-                isMouseDown = false;
-                gameContainer.classList.remove('looking');
-            }, false);
-
-            // --- Управление Касанием (Mobile - Свободная область) ---
-            let lookTouchId = null;
-
-            element.addEventListener('touchstart', (e) => {
-                // Находим касание, которое НЕ находится на джойстике движения
-                const touches = Array.from(e.changedTouches);
-                const nonMovePadTouch = touches.find(t => !movePad.contains(t.target));
-                
-                if (nonMovePadTouch && lookTouchId === null) {
-                    lookTouchId = nonMovePadTouch.identifier;
-                    lastX = nonMovePadTouch.clientX;
-                    lastY = nonMovePadTouch.clientY;
-                    e.preventDefault(); // Предотвращаем прокрутку
-                }
-            }, { passive: false });
-
-            element.addEventListener('touchmove', (e) => {
-                if (lookTouchId === null) return;
-                
-                const touch = Array.from(e.changedTouches).find(t => t.identifier === lookTouchId);
-                if (touch) {
-                    const deltaX = touch.clientX - lastX;
-                    const deltaY = touch.clientY - lastY;
-                    
-                    applyRotation(deltaX, deltaY);
-
-                    lastX = touch.clientX;
-                    lastY = touch.clientY;
-                    e.preventDefault();
-                }
-            }, { passive: false });
-
-            element.addEventListener('touchend', (e) => {
-                const touch = Array.from(e.changedTouches).find(t => t.identifier === lookTouchId);
-                if (touch) {
-                    lookTouchId = null;
-                }
-            }, false);
-        }
-        
-        // ==========================================================
-        // ОБРАБОТЧИК РАЗМЕРА ОКНА
-        // ==========================================================
-
-        function onWindowResize() {
-            if (!renderer) return;
-
-            // Определяем, какую область занимает игра
-            let width = gameContainer.clientWidth;
-            let height = gameContainer.clientHeight;
-            
-            if (window.matchMedia("(orientation: landscape) and (max-width: 900px)").matches) {
-                 // В ландшафте: ширина - это оставшееся пространство
-                 width = window.innerWidth - menuContainer.offsetWidth;
-            } else {
-                 // В портрете или на большом экране: игра занимает весь экран
-                 width = window.innerWidth;
-                 height = window.innerHeight;
-            }
-            
-            camera.aspect = width / height;
-            camera.updateProjectionMatrix();
-            renderer.setSize(width, height);
-        }
-
-        // Запускаем обработчик изменения размера
-        window.addEventListener('resize', onWindowResize);
+        initGame();
     </script>
-
 </body>
 </html>
