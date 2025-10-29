@@ -201,40 +201,22 @@
         // Определяем структуру сюжета игры
         const story = {
             'start': {
-                videoUrl: 'https://files.catbox.moe/gwba6a.mp4', 
-                text: 'Начальная сцена, нет выбора.',
+                // Плейсхолдер для стартового экрана с кнопкой
+                videoUrl: 'https://placehold.co/1280x720/000000/FFFFFF?text=НАЧАЛЬНЫЙ+ЭКРАН', 
+                text: 'Начальная сцена, нажмите "Войти в Пустошь".',
                 choices: [] 
             },
-            // Сцена 01: Бесшовный переход (autoAdvance)
-            'scene_01': { 
-                videoUrl: 'https://files.catbox.moe/xsoldv.mp4',
-                text: 'Продолжение первой сцены.',
-                choices: [], 
-                autoAdvance: 'scene_01_transition' // Автоматический переход после завершения видео
-            },
-            // Сцена перехода: Бесшовный переход (autoAdvance)
-            'scene_01_transition': {
-                videoUrl: 'https://files.catbox.moe/m3px4x.mp4', 
-                text: 'Короткий переход к месту, где нужно принимать решение.',
-                choices: [],
-                autoAdvance: 'scene_01_a' // Автоматический переход
-            },
-            // Сцена 1A: Первый настоящий выбор
             'scene_01_a': {
-                // Визуальный плейсхолдер вместо повторяющегося видео
-                videoUrl: 'https://placehold.co/1280x720/000000/FFFFFF?text=СЦЕНА+1A%0A%0A(ВЫБОР+КОДА/СПРЯТАТЬСЯ)',
+                // Реальное видео 1 (было scene_01)
+                videoUrl: 'https://files.catbox.moe/xsoldv.mp4', 
                 text: 'Фонарик освещает дверь с кодовым замком. Вдалеке слышны шаги. Вы попробуете ввести код или спрятаться?',
                 choices: [
                     { text: 'Ввести случайный код (4 цифры)', nextId: 'scene_02_fail' },
                     { text: 'Спрятаться за ящиками', nextId: 'scene_02_success' }
                 ]
             },
-            'scene_01_b': {
-                videoUrl: 'https://placehold.co/1280x720/000000/FFFFFF?text=СЦЕНА+1B%0A%0A(ТУПИК)',
-                text: 'Карта показывает выход, но вы не видите, куда идти в темноте. Шаги приближаются. Что делать?',
-                choices: []
-            },
             'scene_02_success': {
+                // Плейсхолдер
                 videoUrl: 'https://placehold.co/1280x720/000000/FFFFFF?text=СЦЕНА+2%0A%0A(УСПЕХ)',
                 text: 'Вам удалось избежать опасности! Вы находите ключ от двери. Теперь вы можете выйти.',
                 choices: [
@@ -242,7 +224,8 @@
                 ]
             },
             'scene_02_fail': {
-                videoUrl: 'https://placehold.co/1280x720/000000/FFFFFF?text=СЦЕНА+2%0A%0A(ПРОВАЛ+и+ЭФФЕКТ)',
+                // Реальное видео 2 (было scene_01_transition)
+                videoUrl: 'https://files.catbox.moe/m3px4x.mp4', 
                 text: 'Выбор был неудачным. Дверь не открывается, а шаги достигают вашей комнаты. Игра окончена.',
                 choices: [
                     { text: 'Начать новую игру', nextId: 'start' }
@@ -250,12 +233,13 @@
                 effectAudio: 'https://files.catbox.moe/zuo7xz.mp3' 
             },
             'end_win': {
-                videoUrl: 'https://placehold.co/1280x720/000000/FFFFFF?text=ФИНАЛ%0A%0A(ПОБЕДА+И+МУЗЫКА)',
+                // Реальное видео 3 (было start)
+                videoUrl: 'https://files.catbox.moe/gwba6a.mp4', 
                 text: 'Поздравляем! Вы прошли через все испытания и выбрались на свободу. Продолжение следует...',
                 choices: [
                     { text: 'Начать новую игру', nextId: 'start' }
                 ],
-                musicAudio: 'https://files.catbox.moe/64kb40.mp3', // Музыка для финала
+                musicAudio: 'https://files.catbox.moe/64kb40.mp3',
                 musicVolume: 0.3 
             }
         };
@@ -431,17 +415,8 @@
         function handleSceneEnd(sceneId) {
             const scene = story[sceneId];
             
-            // 1. ПРИОРИТЕТ: БЕСШОВНЫЙ ПЕРЕХОД (autoAdvance)
-            if (scene.autoAdvance) {
-                // НЕ ПАУЗИМ, НЕ МОРОЗИМ. Просто загружаем следующий клип.
-                console.log(`Автоматический (бесшовный) переход к сцене: ${scene.autoAdvance}`);
-                // Очень маленькая задержка, чтобы браузер успел обработать onended
-                setTimeout(() => {
-                    saveProgress(scene.autoAdvance);
-                    loadScene(scene.autoAdvance);
-                }, 50); 
-                return;
-            }
+            // 1. ПРИОРИТЕТ: БЕСШОВНЫЙ ПЕРЕХОД (autoAdvance) - эта логика больше не нужна в упрощенном сюжете
+            // if (scene.autoAdvance) { ... }
             
             // 2. Сцена 'start' (специальный случай для кнопки "НАЧАТЬ")
             if (sceneId === 'start') {
@@ -456,8 +431,9 @@
                 
                 button.onclick = () => {
                     movieInterface.classList.remove('active', 'centered');
-                    saveProgress('scene_01');
-                    loadScene('scene_01');
+                    // ПЕРЕХОД К ПЕРВОЙ СЦЕНЕ ВЫБОРА
+                    saveProgress('scene_01_a'); 
+                    loadScene('scene_01_a');   
                 };
                 choicesContainer.appendChild(button);
                 return;
