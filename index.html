@@ -200,8 +200,8 @@
         // Определяем структуру сюжета игры
         const story = {
             'start': {
-                // Плейсхолдер для стартового экрана с кнопкой
-                videoUrl: 'https://placehold.co/1280x720/000000/FFFFFF?text=НАЧАЛЬНЫЙ+ЭКРАН', 
+                // Установил видео пользователя для стартового экрана
+                videoUrl: 'https://files.catbox.moe/gwba6a.mp4', 
                 text: 'Начальная сцена, нажмите "Войти в Пустошь".',
                 choices: [] 
             },
@@ -232,8 +232,8 @@
                 effectAudio: 'https://files.catbox.moe/zuo7xz.mp3' 
             },
             'end_win': {
-                // Реальное видео 3 (было start)
-                videoUrl: 'https://files.catbox.moe/gwba6a.mp4', 
+                // Новый плейсхолдер для концовки (было видео, которое теперь на старте)
+                videoUrl: 'https://placehold.co/1280x720/000000/FFFFFF?text=КОНЦОВКА%0A%0A(ПОБЕДА)', 
                 text: 'Поздравляем! Вы прошли через все испытания и выбрались на свободу. Продолжение следует...',
                 choices: [
                     { text: 'Начать новую игру', nextId: 'start' }
@@ -476,9 +476,13 @@
             if (sceneId === 'start') {
                 // На стартовой сцене мы не ждем окончания видео (которое может не сработать для плейсхолдера),
                 // а сразу вызываем логику end, чтобы отобразить кнопку "Начать".
-                videoElement.onended = null; // Отключаем onended для меню
-                videoElement.play().catch(e => console.log("Ошибка автозапуска видео на стартовом экране."));
-                return handleSceneEnd('start'); 
+                // Здесь мы хотим, чтобы видео проигралось один раз.
+                 videoElement.onended = () => handleSceneEnd(sceneId); // Возвращаем onended для start
+                // Устанавливаем oncanplaythrough, чтобы начать воспроизведение, как только видео будет готово
+                videoElement.oncanplaythrough = () => {
+                    videoElement.play().catch(e => console.log("Ошибка автозапуска видео на стартовом экране."));
+                    videoElement.oncanplaythrough = null; // Удаляем, чтобы не вызывалось повторно
+                };
             }
             // ------------------------------------------
 
