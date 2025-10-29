@@ -190,35 +190,36 @@
 
     <script type="module">
 
+        // --- КОНСТАНТЫ СЮЖЕТА И ХРАНЕНИЯ ---
+        const LOCAL_STORAGE_KEY = 'movieGameProgress';
+        
+        // Константы для IndexedDB
+        const DB_NAME = 'MovieGameCacheDB';
+        const STORE_NAME = 'assetStore';
+        const DB_VERSION = 1;
+
         // Определяем структуру сюжета игры
         const story = {
-            // Первая сцена - теперь без вариантов выбора (только кнопка "Н А Ч А Т Ь")
             'start': {
                 videoUrl: 'https://files.catbox.moe/gwba6a.mp4', 
                 text: 'Начальная сцена, нет выбора.',
                 choices: [] 
             },
-            // Сцена 01: Теперь ведет к новой переходной сцене
             'scene_01': { 
                 videoUrl: 'https://files.catbox.moe/xsoldv.mp4',
                 text: 'Продолжение первой сцены.',
                 choices: [
-                    // Автоматический переход к новой сцене
                     { text: 'Продолжить (Переход)', nextId: 'scene_01_transition' } 
                 ]
             },
-            // НОВАЯ СЦЕНА: Видео, которое просил Илья, с автоматическим переходом
             'scene_01_transition': {
-                videoUrl: 'https://files.catbox.moe/m3px4x.mp4', // НОВЫЙ URL
+                videoUrl: 'https://files.catbox.moe/m3px4x.mp4', 
                 text: 'Короткий переход к месту, где нужно принимать решение.',
                 choices: [
-                    // Автоматический переход к сцене с выбором
                     { text: 'Продолжить (Сцена 1A)', nextId: 'scene_01_a' } 
                 ]
             },
-            // Сцена 1A: Взяли фонарик (Сцена с РЕАЛЬНЫМ выбором - будет серой и ждать клика)
             'scene_01_a': {
-                // Замена на более надежный URL
                 videoUrl: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4',
                 text: 'Фонарик освещает дверь с кодовым замком. Вдалеке слышны шаги. Вы попробуете ввести код или спрятаться?',
                 choices: [
@@ -226,15 +227,12 @@
                     { text: 'Спрятаться за ящиками', nextId: 'scene_02_success' }
                 ]
             },
-            // Сцена без выбора (если дойдет сюда, то зависнет на сером экране, как финал)
             'scene_01_b': {
-                // Замена на более надежный URL
                 videoUrl: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4',
                 text: 'Карта показывает выход, но вы не видите, куда идти в темноте. Шаги приближаются. Что делать?',
                 choices: []
             },
             'scene_02_success': {
-                // Замена на более надежный URL
                 videoUrl: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4',
                 text: 'Вам удалось избежать опасности! Вы находите ключ от двери. Теперь вы можете выйти.',
                 choices: [
@@ -242,56 +240,96 @@
                 ]
             },
             'scene_02_fail': {
-                // Замена на более надежный URL
                 videoUrl: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4',
                 text: 'Выбор был неудачным. Дверь не открывается, а шаги достигают вашей комнаты. Игра окончена.',
                 choices: [
                     { text: 'Начать новую игру', nextId: 'start' }
                 ],
-                // АУДИО ЭФФЕКТ ДЛЯ ПРЕДПОСЛЕДНЕГО КЛИПА
                 effectAudio: 'https://files.catbox.moe/zuo7xz.mp3' 
             },
             'end_win': {
-                // Замена на более надежный URL
                 videoUrl: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4',
                 text: 'Поздравляем! Вы прошли через все испытания и выбрались на свободу. Продолжение следует...',
                 choices: [
                     { text: 'Начать новую игру', nextId: 'start' }
                 ],
-                // ФОНОВАЯ МУЗЫКА ДЛЯ ПОСЛЕДНЕГО КАДРА
                 musicAudio: 'https://files.catbox.moe/64kb40.mp3',
-                musicVolume: 0.3 // 30% громкости
+                musicVolume: 0.3 
             }
         };
 
-        const LOCAL_STORAGE_KEY = 'movieGameProgress';
-
         // --- Элементы DOM ---
         const loadingScreen = document.getElementById('loading-screen');
-        // Элементы текста загрузки (скрыты на стартовом экране)
         const loadingTitle = document.getElementById('loading-title'); 
         const loadingStatus = document.getElementById('loading-status');
-        
         const loadingAudio = document.getElementById('loading-audio');
         const movieInterface = document.getElementById('movie-interface');
         const videoContainer = document.getElementById('video-container');
         const videoElement = document.getElementById('game-video');
         const choicesContainer = document.getElementById('choices-container');
         const narrativeText = document.getElementById('narrative-text'); 
-        
-        // Новые аудио-элементы
         const sceneEffectAudio = document.getElementById('scene-effect-audio');
         const sceneMusicAudio = document.getElementById('scene-music-audio');
         
-        // Маппинг для хранения Blob URL (локально закэшированных ссылок)
+        // Маппинг для хранения Blob URL (локально закэшированных ссылок в памяти, которые ссылаются на IndexedDB)
         const assetCacheMap = new Map(); 
 
-        // --- Функции сохранения и загрузки состояния (localStorage) ---
+        // --- IndexedDB УТИЛИТЫ ДЛЯ КЭШИРОВАНИЯ ---
 
+        /** Открывает соединение с базой данных IndexedDB. */
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onerror = event => {
+                    console.error('Ошибка IndexedDB:', event.target.error);
+                    reject(event.target.error);
+                };
+                request.onsuccess = event => resolve(event.target.result);
+                request.onupgradeneeded = event => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        // Создаем хранилище объектов. URL будет ключом.
+                        db.createObjectStore(STORE_NAME);
+                        console.log('Создано хранилище IndexedDB:', STORE_NAME);
+                    }
+                };
+            });
+        }
+
+        /** Сохраняет ассет (Blob) в IndexedDB по его URL. */
+        function saveAssetToDB(db, url, blob) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.put(blob, url);
+
+                request.onsuccess = () => resolve();
+                request.onerror = event => {
+                    console.error(`Ошибка сохранения ассета ${url}:`, event.target.error);
+                    reject(event.target.error);
+                };
+            });
+        }
+
+        /** Получает ассет (Blob) из IndexedDB по его URL. */
+        function getAssetFromDB(db, url) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readonly');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.get(url);
+
+                request.onsuccess = event => resolve(event.target.result || null); // Возвращаем Blob или null
+                request.onerror = event => {
+                    console.error(`Ошибка получения ассета ${url}:`, event.target.error);
+                    reject(event.target.error);
+                };
+            });
+        }
+        
+        // --- ФУНКЦИИ ПРОГРЕССА (Local Storage) ---
         function saveProgress(sceneId) {
             try {
                 localStorage.setItem(LOCAL_STORAGE_KEY, sceneId);
-                console.log(`Прогресс сохранен локально: ${sceneId}`);
             } catch (error) {
                 console.error("Ошибка при сохранении локального прогресса:", error);
             }
@@ -302,41 +340,56 @@
                 const savedSceneId = localStorage.getItem(LOCAL_STORAGE_KEY);
                 return savedSceneId || 'start';
             } catch (error) {
-                console.error("Ошибка при загрузке локального прогресса, начинаем с 'start'.", error);
                 return 'start';
             }
         }
 
-        // --- Предварительная загрузка ассетов (с принудительным кэшированием) ---
+        // --- ПРЕДВАРИТЕЛЬНАЯ ЗАГРУЗКА АССЕТОВ (С ИНДЕКСИРОВАННОЙ БАЗОЙ ДАННЫХ) ---
 
         /**
          * Принудительно загружает ассет (видео или аудио) и создает локальный Blob URL.
-         * @param {string} url - Исходный URL ассета.
-         * @returns {Promise<void>} - Промис, который завершается после кэширования.
+         * Сначала проверяет IndexedDB, затем сеть.
          */
-        function preloadAsset(url) {
-            // Пропускаем, если уже закэшировано
-            if (assetCacheMap.has(url)) return Promise.resolve();
+        async function preloadAsset(url) {
+            // Пропускаем, если уже закэшировано в оперативной памяти
+            if (assetCacheMap.has(url)) return;
 
-            return fetch(url)
-                .then(response => {
+            let blob;
+            let db;
+
+            try {
+                db = await openDB();
+                
+                // 1. Попытка получить из IndexedDB
+                const cachedBlob = await getAssetFromDB(db, url);
+
+                if (cachedBlob) {
+                    console.log(`[КЭШ] Ассет загружен из IndexedDB: ${url}`);
+                    blob = cachedBlob;
+                } else {
+                    // 2. Загрузка из сети
+                    const response = await fetch(url);
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    return response.blob().then(blob => {
-                        // Создаем локальный Blob URL и сохраняем его в мапе
-                        const blobUrl = URL.createObjectURL(blob);
-                        assetCacheMap.set(url, blobUrl);
-                    });
-                })
-                .catch(error => {
-                    // Оставляем исходный URL как резервный, но логгируем, что кэширование не удалось
-                    console.error(`Ошибка при принудительном кэшировании ассета: ${url}. Будет использована исходная ссылка.`, error);
-                    assetCacheMap.set(url, url); // Fallback: сохраняем исходный URL
-                });
+                    blob = await response.blob();
+
+                    // 3. Сохранение в IndexedDB для постоянного кэша
+                    await saveAssetToDB(db, url, blob);
+                    console.log(`[КЭШ] Ассет загружен из сети и сохранен в IndexedDB: ${url}`);
+                }
+                
+                // 4. Создание Blob URL и сохранение в оперативной памяти (для использования в DOM)
+                const blobUrl = URL.createObjectURL(blob);
+                assetCacheMap.set(url, blobUrl);
+
+            } catch (error) {
+                console.error(`Ошибка кэширования или загрузки ассета: ${url}. Будет использована исходная ссылка.`, error);
+                // Fallback: сохраняем исходный URL, если IndexedDB или fetch не сработали
+                assetCacheMap.set(url, url); 
+            }
         }
 
         async function preloadAssets() {
             
-            // Собираем все уникальные URL-адреса (видео и аудио)
             const allUrls = new Set();
             Object.values(story).forEach(scene => {
                 if (scene.videoUrl) allUrls.add(scene.videoUrl);
@@ -357,7 +410,6 @@
                 })
             );
             
-            // Начальный статус
             loadingStatus.textContent = `Загрузка ассетов: ${loadedCount} из ${totalAssets}...`;
             
             await Promise.all(preloadPromises);
@@ -365,7 +417,7 @@
             loadingStatus.textContent = 'Загрузка завершена. Ждите клика...';
         }
 
-        // --- Обработчик окончания сцены ---
+        // --- ОБРАБОТЧИКИ СЦЕН И ИГРЫ ---
 
         function handleSceneEnd(sceneId) {
             const scene = story[sceneId];
@@ -381,7 +433,7 @@
             const hasManualChoices = scene.choices.length > 0 && !scene.choices[0].text.startsWith('Продолжить');
             const hasAutoTransitionChoice = scene.choices.length === 1 && scene.choices[0].text.startsWith('Продолжить');
 
-            // --- СПЕЦИАЛЬНЫЙ СЛУЧАЙ: Сцена 'start' (кнопка "Н А Ч А Т Ь") ---
+            // СПЕЦИАЛЬНЫЙ СЛУЧАЙ: Сцена 'start' (кнопка "Н А Ч А Т Ь")
             if (sceneId === 'start') {
                 movieInterface.classList.add('active', 'centered'); 
                 
@@ -398,24 +450,20 @@
                 return;
             }
 
-            // --- СТАНДАРТНЫЙ ВЫБОР (Ручной переход) ---
+            // СТАНДАРТНЫЙ ВЫБОР (Ручной переход)
             if (scene.choices.length > 1 || hasManualChoices) {
-                // Если есть настоящий выбор, показываем кнопки и ждем клика
                 movieInterface.classList.remove('centered');
                 movieInterface.classList.add('active');
-                // Кнопки уже созданы в loadScene, просто показываем интерфейс
                 return;
             }
 
-            // --- АВТОМАТИЧЕСКИЙ ПЕРЕХОД (Нет выбора или только авто-выбор) ---
+            // АВТОМАТИЧЕСКИЙ ПЕРЕХОД
             if (scene.choices.length === 0 || hasAutoTransitionChoice) {
                 
-                // Определяем следующую сцену
-                const nextId = hasAutoTransitionChoice ? scene.choices[0].nextId : 'start'; // Если нет, идем в начало
+                const nextId = hasAutoTransitionChoice ? scene.choices[0].nextId : 'start'; 
 
                 console.log(`Автоматический переход к сцене: ${nextId}`);
                 
-                // Немедленно включаем следующую сцену (с небольшой задержкой для удобства)
                 setTimeout(() => {
                     saveProgress(nextId);
                     loadScene(nextId);
@@ -423,8 +471,6 @@
                 return;
             }
         }
-
-        // --- Загрузка сцены ---
 
         function loadScene(sceneId) {
             const scene = story[sceneId];
@@ -435,25 +481,21 @@
             
             // 1. Скрываем интерфейс и убираем серый фильтр
             movieInterface.classList.remove('active', 'centered');
-            videoElement.classList.remove('frozen'); // Убираем эффект серого цвета
+            videoElement.classList.remove('frozen'); 
             
             // --- УПРАВЛЕНИЕ АУДИО СЦЕНЫ ---
-            
-            // Останавливаем все сценные аудио перед загрузкой новой сцены
             sceneEffectAudio.pause();
             sceneEffectAudio.currentTime = 0;
             sceneMusicAudio.pause();
             sceneMusicAudio.currentTime = 0;
             
             if (scene.effectAudio) {
-                // Используем закэшированный URL
                 sceneEffectAudio.src = assetCacheMap.get(scene.effectAudio) || scene.effectAudio;
                 sceneEffectAudio.load();
                 sceneEffectAudio.play().catch(e => console.warn("Не удалось запустить эффект аудио:", e));
             }
 
             if (scene.musicAudio) {
-                // *** ИСПРАВЛЕНИЕ: Логируем попытку запуска фоновой музыки ***
                 const musicUrl = assetCacheMap.get(scene.musicAudio) || scene.musicAudio;
                 const volume = scene.musicVolume !== undefined ? scene.musicVolume : 1.0;
                 
@@ -466,8 +508,7 @@
             }
             // -----------------------------
             
-            // 2. Обновляем видео и запускаем
-            // Берем Blob URL из кэша (или исходный URL, если кэширование не удалось)
+            // 2. Обновляем видео и запускаем (используя кэшированный URL)
             videoElement.src = assetCacheMap.get(scene.videoUrl) || scene.videoUrl;
             videoElement.load();
             videoElement.muted = false; 
@@ -481,9 +522,9 @@
                 movieInterface.classList.add('active');
             });
 
-            // 4. Обновляем текст и рендерим кнопки (если они есть)
+            // 4. Обновляем текст и рендерим кнопки
             narrativeText.textContent = scene.text; 
-            choicesContainer.innerHTML = ''; // Очищаем контейнер
+            choicesContainer.innerHTML = ''; 
 
             if (scene.choices && scene.choices.length > 0) {
                 scene.choices.forEach(choice => {
@@ -500,36 +541,28 @@
                     choicesContainer.appendChild(button);
                 });
             }
-            // Кнопки пока не показываются, они будут показаны только после onended
         }
 
-        // --- Новая функция: Показ начальной кнопки (только кнопка) ---
-        function showStartButtonScreen() {
-            // Удаляем старый слушатель на случай, если он был
-            loadingScreen.removeEventListener('click', startGame);
+        // --- УПРАВЛЕНИЕ ЗАГРУЗКОЙ И СТАРТОМ ---
 
-            // 1. Очищаем экран от всего контента (включая скрытый текст)
+        function showStartButtonScreen() {
+            loadingScreen.removeEventListener('click', startGame);
             loadingScreen.innerHTML = ''; 
 
-            // 2. Создаем кнопку "Войти в Пустошь"
             const startButton = document.createElement('button');
             startButton.id = 'wasteland-start-btn';
             startButton.textContent = 'В О Й Т И   В   П У С Т О Ш Ь';
-            startButton.className = 'mt-0'; // Класс для центрирования на loading-screen (который flex-col)
+            startButton.className = 'mt-0'; 
             
-            // 3. Добавляем только кнопку
             loadingScreen.appendChild(startButton);
-
-            // 4. Назначаем обработчик клика, который начнет загрузку
             startButton.onclick = startLoading;
         }
 
-        // --- Обновленная функция: Запуск загрузки ассетов и музыки ---
         function startLoading() {
             
-            // 1. **ИСПРАВЛЕНИЕ МУЗЫКИ**: Запускаем музыку ПЕРВЫМ ДЕЛОМ, привязывая ее к клику
+            // 1. Запускаем музыку ПЕРВЫМ ДЕЛОМ, привязывая ее к клику
             loadingAudio.volume = 0.5; 
-            loadingAudio.play().catch(e => console.warn("Не удалось запустить музыку. Попробуем снова после загрузки.", e));
+            loadingAudio.play().catch(e => console.warn("Не удалось запустить музыку.", e));
 
             // 2. Убираем кнопку
             const startButton = document.getElementById('wasteland-start-btn');
@@ -544,26 +577,24 @@
             loadingStatus.classList.remove('hidden');
             loadingTitle.textContent = 'З А Г Р У З К А';
             loadingTitle.classList.add('animate-pulse');
-            loadingStatus.textContent = 'Начинаем загрузку ассетов...';
+            loadingStatus.textContent = 'Проверка кэша и загрузка ассетов...';
 
-            // 5. Начинаем загрузку ассетов
+            // 5. Начинаем загрузку ассетов (теперь с проверкой IndexedDB)
             preloadAssets().then(() => {
                 // 6. Когда загрузка завершена, переходим к экрану готовности
                 showReadyScreen();
             });
         }
 
-        // --- Обновленная функция: Показ экрана готовности (после загрузки) ---
         function showReadyScreen() {
             loadingTitle.textContent = 'Н А Ж М И Т Е';
             loadingTitle.classList.remove('animate-pulse');
-            loadingStatus.textContent = 'чтобы начать игру';
+            loadingStatus.textContent = 'чтобы начать игру (кэш проверен)';
             
             loadingScreen.style.cursor = 'pointer';
             loadingScreen.addEventListener('click', startGame, { once: true });
         }
         
-        // --- Обновленная функция: Запуск игры (после второго клика) ---
         function startGame() {
             // 1. Плавное скрытие загрузочного экрана
             loadingScreen.style.opacity = '0';
@@ -580,7 +611,7 @@
             }, 500); 
         }
 
-        // --- Инициализация игры (только показ кнопки) ---
+        // --- Инициализация игры ---
         showStartButtonScreen(); 
     </script>
 </body>
