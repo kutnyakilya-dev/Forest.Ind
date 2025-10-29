@@ -133,15 +133,32 @@
             background-color: rgba(0, 0, 0, 0.4); /* Легкая темная подсветка фона при наведении */
             transform: scale(1.05); /* Небольшое увеличение */
         }
+        /* Стиль для кнопки "Пустошь" на начальном экране */
+        #wasteland-start-btn {
+            background-color: #fff;
+            color: #000;
+            text-shadow: none;
+            padding: 1rem 3rem;
+            border-radius: 9999px; /* Круглые края */
+            font-size: 1.5rem;
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.3);
+            font-weight: 700;
+        }
+        #wasteland-start-btn:hover {
+            box-shadow: 0 6px 20px rgba(255, 255, 255, 0.5);
+            background-color: #eee;
+        }
     </style>
 </head>
 <body>
 
     <!-- Загрузочный экран -->
     <div id="loading-screen">
-        <p id="loading-title" class="text-4xl text-white font-bold tracking-widest animate-pulse">З А Г Р У З К А</p>
-        <!-- Индикатор прогресса, если нужно, но пока просто статус -->
-        <p id="loading-status" class="text-sm text-gray-400 mt-4"></p>
+        <!-- Текст, который будет меняться. На старте будет скрыт, потом показан для загрузки. -->
+        <p id="loading-title" class="text-4xl text-white font-bold tracking-widest hidden">И Н Т Е Р А К Т И В Н О Е</p>
+        <p id="loading-status" class="text-xl text-gray-300 mt-2 hidden">К И Н О: П У С Т О Ш Ь</p>
+        
+        <!-- Кнопка будет добавлена через JS в showStartButtonScreen -->
     </div>
     
     <!-- Музыка загрузки -->
@@ -246,8 +263,10 @@
 
         // --- Элементы DOM ---
         const loadingScreen = document.getElementById('loading-screen');
+        // Элементы текста загрузки (скрыты на стартовом экране)
         const loadingTitle = document.getElementById('loading-title'); 
         const loadingStatus = document.getElementById('loading-status');
+        
         const loadingAudio = document.getElementById('loading-audio');
         const movieInterface = document.getElementById('movie-interface');
         const videoContainer = document.getElementById('video-container');
@@ -474,24 +493,68 @@
             // Кнопки пока не показываются, они будут показаны только после onended
         }
 
-        // --- Функции для экрана готовности ---
+        // --- Новая функция: Показ начальной кнопки (только кнопка) ---
+        function showStartButtonScreen() {
+            // Удаляем старый слушатель на случай, если он был
+            loadingScreen.removeEventListener('click', startGame);
 
+            // 1. Очищаем экран от всего контента (включая скрытый текст)
+            loadingScreen.innerHTML = ''; 
+
+            // 2. Создаем кнопку "Войти в Пустошь"
+            const startButton = document.createElement('button');
+            startButton.id = 'wasteland-start-btn';
+            startButton.textContent = 'В О Й Т И   В   П У С Т О Ш Ь';
+            startButton.className = 'mt-0'; // Класс для центрирования на loading-screen (который flex-col)
+            
+            // 3. Добавляем только кнопку
+            loadingScreen.appendChild(startButton);
+
+            // 4. Назначаем обработчик клика, который начнет загрузку
+            startButton.onclick = startLoading;
+        }
+
+        // --- Новая функция: Запуск загрузки ассетов и музыки ---
+        function startLoading() {
+            // 1. Убираем кнопку
+            const startButton = document.getElementById('wasteland-start-btn');
+            if (startButton) startButton.remove();
+            
+            // 2. Добавляем обратно элементы текста загрузки в DOM
+            loadingScreen.appendChild(loadingTitle);
+            loadingScreen.appendChild(loadingStatus);
+            
+            // 3. Обновляем текст загрузки и делаем видимым
+            loadingTitle.classList.remove('hidden');
+            loadingStatus.classList.remove('hidden');
+            loadingTitle.textContent = 'З А Г Р У З К А';
+            loadingTitle.classList.add('animate-pulse');
+            loadingStatus.textContent = 'Начинаем загрузку ассетов...';
+
+            // 4. Запускаем музыку (работает, так как это происходит после клика)
+            loadingAudio.volume = 0.5; 
+            loadingAudio.play().catch(e => console.warn("Не удалось запустить музыку:", e));
+
+            // 5. Начинаем загрузку ассетов
+            preloadAssets().then(() => {
+                // 6. Когда загрузка завершена, переходим к экрану готовности
+                showReadyScreen();
+            });
+        }
+
+        // --- Обновленная функция: Показ экрана готовности (после загрузки) ---
         function showReadyScreen() {
             loadingTitle.textContent = 'Н А Ж М И Т Е';
             loadingTitle.classList.remove('animate-pulse');
-            loadingStatus.textContent = 'чтобы начать';
+            loadingStatus.textContent = 'чтобы начать игру';
             
             loadingScreen.style.cursor = 'pointer';
             loadingScreen.addEventListener('click', startGame, { once: true });
         }
         
+        // --- Обновленная функция: Запуск игры (после второго клика) ---
         function startGame() {
-            // 1. Запуск музыки
-            loadingAudio.play().catch(e => {
-                console.warn("Не удалось запустить музыку:", e);
-            });
-            
-            // 2. Плавное скрытие загрузочного экрана
+            // 1. Плавное скрытие загрузочного экрана
             loadingScreen.style.opacity = '0';
             
             setTimeout(() => {
@@ -506,20 +569,8 @@
             }, 500); 
         }
 
-
-        // --- Инициализация игры ---
-
-        async function initGame() {
-            await preloadAssets(); 
-            showReadyScreen();
-        }
-
-        // Запускаем музыку сразу (она будет ждать клика)
-        loadingAudio.play().catch(e => {
-            console.log("Музыка загрузки не запустилась автоматически (нужен клик).");
-        });
-        
-        initGame();
+        // --- Инициализация игры (только показ кнопки) ---
+        showStartButtonScreen(); 
     </script>
 </body>
 </html>
