@@ -38,7 +38,7 @@
             transition: filter 0.5s ease; /* Добавляем плавный переход для фильтра */
         }
         
-        /* НОВАЯ КЛАССА: Эффект заморозки и обесцвечивания */
+        /* Эффект заморозки и обесцвечивания */
         #game-video.frozen {
             filter: grayscale(100%); /* Делает видео черно-белым */
         }
@@ -205,22 +205,24 @@
                 text: 'Начальная сцена, нет выбора.',
                 choices: [] 
             },
+            // Сцена 01: Бесшовный переход (autoAdvance)
             'scene_01': { 
                 videoUrl: 'https://files.catbox.moe/xsoldv.mp4',
                 text: 'Продолжение первой сцены.',
-                choices: [
-                    { text: 'Продолжить (Переход)', nextId: 'scene_01_transition' } 
-                ]
+                choices: [], 
+                autoAdvance: 'scene_01_transition' // Автоматический переход после завершения видео
             },
+            // Сцена перехода: Бесшовный переход (autoAdvance)
             'scene_01_transition': {
                 videoUrl: 'https://files.catbox.moe/m3px4x.mp4', 
                 text: 'Короткий переход к месту, где нужно принимать решение.',
-                choices: [
-                    { text: 'Продолжить (Сцена 1A)', nextId: 'scene_01_a' } 
-                ]
+                choices: [],
+                autoAdvance: 'scene_01_a' // Автоматический переход
             },
+            // Сцена 1A: Первый настоящий выбор
             'scene_01_a': {
-                videoUrl: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4',
+                // Визуальный плейсхолдер вместо повторяющегося видео
+                videoUrl: 'https://placehold.co/1280x720/000000/FFFFFF?text=СЦЕНА+1A%0A%0A(ВЫБОР+КОДА/СПРЯТАТЬСЯ)',
                 text: 'Фонарик освещает дверь с кодовым замком. Вдалеке слышны шаги. Вы попробуете ввести код или спрятаться?',
                 choices: [
                     { text: 'Ввести случайный код (4 цифры)', nextId: 'scene_02_fail' },
@@ -228,19 +230,19 @@
                 ]
             },
             'scene_01_b': {
-                videoUrl: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4',
+                videoUrl: 'https://placehold.co/1280x720/000000/FFFFFF?text=СЦЕНА+1B%0A%0A(ТУПИК)',
                 text: 'Карта показывает выход, но вы не видите, куда идти в темноте. Шаги приближаются. Что делать?',
                 choices: []
             },
             'scene_02_success': {
-                videoUrl: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4',
+                videoUrl: 'https://placehold.co/1280x720/000000/FFFFFF?text=СЦЕНА+2%0A%0A(УСПЕХ)',
                 text: 'Вам удалось избежать опасности! Вы находите ключ от двери. Теперь вы можете выйти.',
                 choices: [
                     { text: 'Использовать ключ и выйти', nextId: 'end_win' }
                 ]
             },
             'scene_02_fail': {
-                videoUrl: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4',
+                videoUrl: 'https://placehold.co/1280x720/000000/FFFFFF?text=СЦЕНА+2%0A%0A(ПРОВАЛ+и+ЭФФЕКТ)',
                 text: 'Выбор был неудачным. Дверь не открывается, а шаги достигают вашей комнаты. Игра окончена.',
                 choices: [
                     { text: 'Начать новую игру', nextId: 'start' }
@@ -248,12 +250,12 @@
                 effectAudio: 'https://files.catbox.moe/zuo7xz.mp3' 
             },
             'end_win': {
-                videoUrl: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4',
+                videoUrl: 'https://placehold.co/1280x720/000000/FFFFFF?text=ФИНАЛ%0A%0A(ПОБЕДА+И+МУЗЫКА)',
                 text: 'Поздравляем! Вы прошли через все испытания и выбрались на свободу. Продолжение следует...',
                 choices: [
                     { text: 'Начать новую игру', nextId: 'start' }
                 ],
-                musicAudio: 'https://files.catbox.moe/64kb40.mp3',
+                musicAudio: 'https://files.catbox.moe/64kb40.mp3', // Музыка для финала
                 musicVolume: 0.3 
             }
         };
@@ -271,7 +273,7 @@
         const sceneEffectAudio = document.getElementById('scene-effect-audio');
         const sceneMusicAudio = document.getElementById('scene-music-audio');
         
-        // Маппинг для хранения Blob URL (локально закэшированных ссылок в памяти, которые ссылаются на IndexedDB)
+        // Маппинг для хранения Blob URL (локально закэшированных ссылок в памяти)
         const assetCacheMap = new Map(); 
 
         // --- IndexedDB УТИЛИТЫ ДЛЯ КЭШИРОВАНИЯ ---
@@ -357,6 +359,12 @@
             let blob;
             let db;
 
+            // Пропускаем плейсхолдеры, так как они не являются реальными файлами для загрузки
+            if (!url.includes('http')) {
+                assetCacheMap.set(url, url);
+                return;
+            }
+
             try {
                 db = await openDB();
                 
@@ -364,7 +372,7 @@
                 const cachedBlob = await getAssetFromDB(db, url);
 
                 if (cachedBlob) {
-                    console.log(`[КЭШ] Ассет загружен из IndexedDB: ${url}`);
+                    // console.log(`[КЭШ] Ассет загружен из IndexedDB: ${url}`);
                     blob = cachedBlob;
                 } else {
                     // 2. Загрузка из сети
@@ -374,7 +382,7 @@
 
                     // 3. Сохранение в IndexedDB для постоянного кэша
                     await saveAssetToDB(db, url, blob);
-                    console.log(`[КЭШ] Ассет загружен из сети и сохранен в IndexedDB: ${url}`);
+                    // console.log(`[КЭШ] Ассет загружен из сети и сохранен в IndexedDB: ${url}`);
                 }
                 
                 // 4. Создание Blob URL и сохранение в оперативной памяти (для использования в DOM)
@@ -397,6 +405,7 @@
                 if (scene.musicAudio) allUrls.add(scene.musicAudio);
             });
             
+            // Фильтруем только те, что имеют http/https для загрузки
             const assetUrls = Array.from(allUrls).filter(url => url && url.includes('http'));
 
             const totalAssets = assetUrls.length;
@@ -422,21 +431,25 @@
         function handleSceneEnd(sceneId) {
             const scene = story[sceneId];
             
-            // 1. Замораживаем и делаем серым
-            videoElement.pause();
-            videoElement.classList.add('frozen'); 
-
-            // 2. Очищаем старые кнопки
-            choicesContainer.innerHTML = '';
-            movieInterface.classList.remove('active', 'centered');
-
-            const hasManualChoices = scene.choices.length > 0 && !scene.choices[0].text.startsWith('Продолжить');
-            const hasAutoTransitionChoice = scene.choices.length === 1 && scene.choices[0].text.startsWith('Продолжить');
-
-            // СПЕЦИАЛЬНЫЙ СЛУЧАЙ: Сцена 'start' (кнопка "Н А Ч А Т Ь")
+            // 1. ПРИОРИТЕТ: БЕСШОВНЫЙ ПЕРЕХОД (autoAdvance)
+            if (scene.autoAdvance) {
+                // НЕ ПАУЗИМ, НЕ МОРОЗИМ. Просто загружаем следующий клип.
+                console.log(`Автоматический (бесшовный) переход к сцене: ${scene.autoAdvance}`);
+                // Очень маленькая задержка, чтобы браузер успел обработать onended
+                setTimeout(() => {
+                    saveProgress(scene.autoAdvance);
+                    loadScene(scene.autoAdvance);
+                }, 50); 
+                return;
+            }
+            
+            // 2. Сцена 'start' (специальный случай для кнопки "НАЧАТЬ")
             if (sceneId === 'start') {
+                videoElement.pause(); // Пауза, чтобы видео не перезапустилось
+                videoElement.classList.add('frozen'); 
                 movieInterface.classList.add('active', 'centered'); 
                 
+                // Создаем кнопку "Н А Ч А Т Ь"
                 const button = document.createElement('button');
                 button.textContent = 'Н А Ч А Т Ь';
                 button.className = 'choice-btn transition duration-200 ease-in-out text-2xl px-8 py-4'; 
@@ -450,25 +463,25 @@
                 return;
             }
 
-            // СТАНДАРТНЫЙ ВЫБОР (Ручной переход)
-            if (scene.choices.length > 1 || hasManualChoices) {
-                movieInterface.classList.remove('centered');
-                movieInterface.classList.add('active');
-                return;
-            }
+            // 3. ВСЕ ОСТАЛЬНЫЕ СЦЕНЫ (С ВЫБОРОМ ИЛИ КОНЦОВКИ)
 
-            // АВТОМАТИЧЕСКИЙ ПЕРЕХОД
-            if (scene.choices.length === 0 || hasAutoTransitionChoice) {
-                
-                const nextId = hasAutoTransitionChoice ? scene.choices[0].nextId : 'start'; 
+            // Замораживаем и делаем серым
+            videoElement.pause();
+            videoElement.classList.add('frozen'); 
 
-                console.log(`Автоматический переход к сцене: ${nextId}`);
-                
-                setTimeout(() => {
-                    saveProgress(nextId);
-                    loadScene(nextId);
-                }, 500); 
-                return;
+            // Очищаем старые кнопки
+            choicesContainer.innerHTML = '';
+            movieInterface.classList.remove('active', 'centered');
+
+            if (scene.choices.length > 0) {
+                // Это сцена с выбором (включая end_win/end_fail с кнопкой "Начать заново")
+                 movieInterface.classList.remove('centered');
+                 movieInterface.classList.add('active');
+                 // Кнопки уже созданы в loadScene, просто показываем интерфейс
+                 return;
+            } else {
+                // Это конечная сцена без выбора (например, тупиковая ветка)
+                console.log("Достигнута конечная сцена без активного выбора.");
             }
         }
 
@@ -518,7 +531,7 @@
 
             videoElement.play().catch(e => {
                 console.log("Ошибка автозапуска видео:", e);
-                // Если не удалось автовоспроизведение, показываем интерфейс, чтобы пользователь нажал Play вручную
+                // Если не удалось автовоспроизведение, показываем интерфейс
                 movieInterface.classList.add('active');
             });
 
