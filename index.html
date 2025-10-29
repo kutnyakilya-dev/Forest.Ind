@@ -218,7 +218,8 @@
             },
             // Сцена 1A: Взяли фонарик (Сцена с РЕАЛЬНЫМ выбором - будет серой и ждать клика)
             'scene_01_a': {
-                videoUrl: 'https://archive.org/download/BigBuckBunny_124/Content/big_buck_bunny_720p_stereo.mp4',
+                // Замена на более надежный URL
+                videoUrl: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4',
                 text: 'Фонарик освещает дверь с кодовым замком. Вдалеке слышны шаги. Вы попробуете ввести код или спрятаться?',
                 choices: [
                     { text: 'Ввести случайный код (4 цифры)', nextId: 'scene_02_fail' },
@@ -227,19 +228,22 @@
             },
             // Сцена без выбора (если дойдет сюда, то зависнет на сером экране, как финал)
             'scene_01_b': {
-                videoUrl: 'https://archive.org/download/ElephantsDream/ed_hd.mp4',
+                // Замена на более надежный URL
+                videoUrl: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4',
                 text: 'Карта показывает выход, но вы не видите, куда идти в темноте. Шаги приближаются. Что делать?',
                 choices: []
             },
             'scene_02_success': {
-                videoUrl: 'https://archive.org/download/BigBuckBunny_124/Content/big_buck_bunny_720p_stereo.mp4',
+                // Замена на более надежный URL
+                videoUrl: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4',
                 text: 'Вам удалось избежать опасности! Вы находите ключ от двери. Теперь вы можете выйти.',
                 choices: [
                     { text: 'Использовать ключ и выйти', nextId: 'end_win' }
                 ]
             },
             'scene_02_fail': {
-                videoUrl: 'https://archive.org/download/ElephantsDream/ed_hd.mp4',
+                // Замена на более надежный URL
+                videoUrl: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4',
                 text: 'Выбор был неудачным. Дверь не открывается, а шаги достигают вашей комнаты. Игра окончена.',
                 choices: [
                     { text: 'Начать новую игру', nextId: 'start' }
@@ -248,7 +252,8 @@
                 effectAudio: 'https://files.catbox.moe/zuo7xz.mp3' 
             },
             'end_win': {
-                videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
+                // Замена на более надежный URL
+                videoUrl: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4',
                 text: 'Поздравляем! Вы прошли через все испытания и выбрались на свободу. Продолжение следует...',
                 choices: [
                     { text: 'Начать новую игру', nextId: 'start' }
@@ -323,6 +328,7 @@
                     });
                 })
                 .catch(error => {
+                    // Оставляем исходный URL как резервный, но логгируем, что кэширование не удалось
                     console.error(`Ошибка при принудительном кэшировании ассета: ${url}. Будет использована исходная ссылка.`, error);
                     assetCacheMap.set(url, url); // Fallback: сохраняем исходный URL
                 });
@@ -447,10 +453,14 @@
             }
 
             if (scene.musicAudio) {
-                // Используем закэшированный URL
-                sceneMusicAudio.src = assetCacheMap.get(scene.musicAudio) || scene.musicAudio;
-                // Устанавливаем громкость (по умолчанию 1.0, если не указана)
-                sceneMusicAudio.volume = scene.musicVolume !== undefined ? scene.musicVolume : 1.0; 
+                // *** ИСПРАВЛЕНИЕ: Логируем попытку запуска фоновой музыки ***
+                const musicUrl = assetCacheMap.get(scene.musicAudio) || scene.musicAudio;
+                const volume = scene.musicVolume !== undefined ? scene.musicVolume : 1.0;
+                
+                console.log(`[АУДИО] Попытка запустить фоновую музыку для сцены ${sceneId}: ${musicUrl} с громкостью ${volume}`);
+                
+                sceneMusicAudio.src = musicUrl;
+                sceneMusicAudio.volume = volume; 
                 sceneMusicAudio.load();
                 sceneMusicAudio.play().catch(e => console.warn("Не удалось запустить фоновую музыку:", e));
             }
@@ -514,26 +524,27 @@
             startButton.onclick = startLoading;
         }
 
-        // --- Новая функция: Запуск загрузки ассетов и музыки ---
+        // --- Обновленная функция: Запуск загрузки ассетов и музыки ---
         function startLoading() {
-            // 1. Убираем кнопку
+            
+            // 1. **ИСПРАВЛЕНИЕ МУЗЫКИ**: Запускаем музыку ПЕРВЫМ ДЕЛОМ, привязывая ее к клику
+            loadingAudio.volume = 0.5; 
+            loadingAudio.play().catch(e => console.warn("Не удалось запустить музыку. Попробуем снова после загрузки.", e));
+
+            // 2. Убираем кнопку
             const startButton = document.getElementById('wasteland-start-btn');
             if (startButton) startButton.remove();
             
-            // 2. Добавляем обратно элементы текста загрузки в DOM
+            // 3. Добавляем обратно элементы текста загрузки в DOM
             loadingScreen.appendChild(loadingTitle);
             loadingScreen.appendChild(loadingStatus);
             
-            // 3. Обновляем текст загрузки и делаем видимым
+            // 4. Обновляем текст загрузки и делаем видимым
             loadingTitle.classList.remove('hidden');
             loadingStatus.classList.remove('hidden');
             loadingTitle.textContent = 'З А Г Р У З К А';
             loadingTitle.classList.add('animate-pulse');
             loadingStatus.textContent = 'Начинаем загрузку ассетов...';
-
-            // 4. Запускаем музыку (работает, так как это происходит после клика)
-            loadingAudio.volume = 0.5; 
-            loadingAudio.play().catch(e => console.warn("Не удалось запустить музыку:", e));
 
             // 5. Начинаем загрузку ассетов
             preloadAssets().then(() => {
