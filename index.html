@@ -205,9 +205,16 @@
                 text: 'Начальная сцена, нажмите "Н А Ч А Т Ь".',
                 choices: [] 
             },
-            'scene_01_a': {
-                // ВИДЕО ПОСЛЕ КНОПКИ "Н А Ч А Т Ь" (Запрос пользователя)
+            'scene_01_intro': { // НОВАЯ СЦЕНА: Проигрывает видео-погоню
                 videoUrl: 'https://files.catbox.moe/m3px4x.mp4', 
+                text: 'Погоня!',
+                choices: [],
+                // Автоматический переход к сцене выбора после окончания видео
+                nextScene: 'scene_01_a' 
+            },
+            'scene_01_a': { // СТАНДАРТНАЯ СЦЕНА ВЫБОРА
+                // Используем черный плейсхолдер, так как видео уже проиграно в intro
+                videoUrl: 'https://placehold.co/1280x720/000000/FFFFFF?text=СЦЕНА+ВЫБОРА+В+КОРИДОРЕ', 
                 text: 'Вы бежите по узкому коридору, преследуемый чем-то в темноте. Впереди развилка: направо, вниз, или налево, наверх?',
                 choices: [
                     { text: 'Резко свернуть направо (вниз)', nextId: 'scene_02_fail' },
@@ -223,7 +230,7 @@
                 ]
             },
             'scene_02_fail': {
-                // Замененное видео (было m3px4x.mp4) - теперь это сцена проигрыша
+                // Сцена проигрыша
                 videoUrl: 'https://placehold.co/1280x720/8B0000/FFFFFF?text=СЦЕНА+ПРОИГРЫША%0A%0A(ПОЙМАН)', 
                 text: 'Неверный поворот. Тупик. Вас настигли. Игра окончена.',
                 choices: [
@@ -404,12 +411,20 @@
                 
                 button.onclick = () => {
                     movieInterface.classList.remove('active', 'centered');
-                    // Переход к первой сцене выбора, которая теперь использует m3px4x.mp4
-                    loadScene('scene_01_a');   
+                    // Переход к новой промежуточной сцене с видео-погоней
+                    loadScene('scene_01_intro');   
                 };
                 choicesContainer.appendChild(button);
                 return;
             }
+            
+            // НОВАЯ ЛОГИКА: Автоматический переход, если задана nextScene и нет выборов
+            if (scene.nextScene && (!scene.choices || scene.choices.length === 0)) {
+                // Небольшая задержка для плавного перехода
+                setTimeout(() => loadScene(scene.nextScene), 50); 
+                return;
+            }
+
 
             // 2. ВСЕ ОСТАЛЬНЫЕ СЦЕНЫ (С ВЫБОРОМ ИЛИ КОНЦОВКИ)
             // Замораживаем и делаем серым
@@ -421,6 +436,7 @@
             movieInterface.classList.remove('active', 'centered');
 
             if (scene.choices.length > 0) {
+                 // Если есть выбор, показываем его
                  movieInterface.classList.remove('centered');
                  movieInterface.classList.add('active');
                  // Кнопки уже созданы в loadScene, просто показываем интерфейс
