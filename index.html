@@ -27,13 +27,17 @@
             border-top-color: #f87171; /* Красный цвет для спиннера */
             animation: spin 1s linear infinite;
         }
+        /* Убеждаемся, что канвас не имеет фиксированной высоты, чтобы он мог заполнить весь экран */
+        #visualizer-canvas {
+            background-color: transparent; /* Канвас должен быть прозрачным */
+        }
     </style>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        'custom-red': '#dc2626', /* Интенсивный красный */
+                        'custom-red': '#dc2626', /* Интенсивный красный для кнопки */
                         'custom-red-hover': '#b91c1c',
                     }
                 }
@@ -75,8 +79,8 @@
             <!-- object-cover обеспечивает полноэкранное отображение вертикального видео -->
             <video id="battle-video" class="w-full h-full object-cover absolute top-0 left-0" autoplay crossorigin="anonymous" muted></video>
             
-            <!-- Визуализатор поверх видео, прикреплен к нижней части -->
-            <canvas id="visualizer-canvas" class="absolute bottom-0 left-0 w-full h-24 z-20"></canvas>
+            <!-- Визуализатор поверх видео, ПОЛНОЭКРАННЫЙ -->
+            <canvas id="visualizer-canvas" class="absolute inset-0 z-20"></canvas>
             
             <!-- Индикатор загрузки видео (поверх) -->
             <div id="video-loading" class="absolute inset-0 bg-black bg-opacity-75 flex flex-col items-center justify-center hidden z-30">
@@ -108,7 +112,7 @@
         const startButton = document.getElementById('start-button');
         const messageBox = document.getElementById('message-box');
         const boxMessage = document.getElementById('box-message');
-        const videoLoading = document.getElementById('video-loading'); // Новый элемент для индикации загрузки видео
+        const videoLoading = document.getElementById('video-loading'); 
 
         // Ключ для кэша в localStorage
         const CACHE_KEY = 'appCacheLoaded';
@@ -123,12 +127,12 @@
         let currentVideoIndex = 0;
         
         // =================================================================
-        // НАСТРОЙКИ АУДИО ВИЗУАЛИЗАТОРА
+        // НАСТРОЙКИ АУДИО ВИЗУАЛИЗАТОРА (Круглые волны)
         // =================================================================
         let audioCtx = null;
         let analyser = null;
         let source = null;
-        let dataArray = null;
+        let freqDataArray = null; // Данные частотной области (для пульсации)
         let bufferLength = 0;
         let animationFrameId = null;
 
@@ -136,17 +140,16 @@
          * Инициализирует Web Audio API. Должен быть вызван после взаимодействия с пользователем.
          */
         function initAudioContext() {
-            // Если контекст уже создан, выходим
             if (audioCtx) return; 
 
             try {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 analyser = audioCtx.createAnalyser();
-                analyser.fftSize = 256; 
-                bufferLength = analyser.frequencyBinCount;
-                dataArray = new Uint8Array(bufferLength);
+                analyser.fftSize = 1024; // Оптимально для частотного анализа
+                bufferLength = analyser.frequencyBinCount; // 512
+                
+                freqDataArray = new Uint8Array(bufferLength); // 512 частот
 
-                // Подключаем видео элемент к аудио контексту
                 source = audioCtx.createMediaElementSource(battleVideo);
                 source.connect(analyser);
                 analyser.connect(audioCtx.destination);
@@ -157,66 +160,126 @@
                 console.log("AudioContext успешно инициализирован.");
             } catch (e) {
                 console.error("Ошибка инициализации AudioContext:", e);
-                // Отключаем визуализатор, если аудио не работает
                 visualizerCanvas.style.display = 'none'; 
                 showMessage("Ошибка инициализации аудио для визуализатора. Проверьте, что видеофайл доступен по CORS.");
             }
         }
 
         /**
-         * Отрисовывает визуализатор частот на холсте.
+         * Отрисовывает визуализатор частот на холсте в виде круга.
          */
         function drawVisualizer() {
             animationFrameId = requestAnimationFrame(drawVisualizer);
 
-            if (!analyser) return;
+            if (!analyser || !freqDataArray) return;
 
-            // Получаем данные частот
-            analyser.getByteFrequencyData(dataArray);
+            // 1. Очищаем холст (используем прозрачность, чтобы видеть видео)
+            canvasCtx.clearRect(0, 0, visualizerCanvas.width, visualizerCanvas.height); 
+            
+            // 2. Получаем данные частот
+            analyser.getByteFrequencyData(freqDataArray); 
 
-            // Очищаем холст (полупрозрачный черный фон поверх видео)
-            canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.6)'; 
-            canvasCtx.fillRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
-
-            const barWidth = (visualizerCanvas.width / bufferLength) * 2; 
-            let x = 0;
-            const heightMultiplier = 0.95; // Максимальная высота столбика (95% от канваса)
-
-            for(let i = 0; i < bufferLength; i++) {
-                // Высота столбика
-                const barHeight = (dataArray[i] / 256) * visualizerCanvas.height * heightMultiplier + 2; 
-                
-                // Создаем градиент для динамичности (от светлого к темному красному)
-                const r = 220; 
-                const g = 38;  
-                const b = 38;  
-
-                const gradient = canvasCtx.createLinearGradient(0, visualizerCanvas.height, 0, visualizerCanvas.height - barHeight);
-                gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.2)`);
-                gradient.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, 0.7)`);
-                gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 1.0)`);
-                
-                canvasCtx.fillStyle = gradient;
-
-                // Рисуем столбик с небольшим зазором
-                canvasCtx.fillRect(x, visualizerCanvas.height - barHeight, barWidth - 1, barHeight); 
-
-                x += barWidth;
+            const WIDTH = visualizerCanvas.width;
+            const HEIGHT = visualizerCanvas.height;
+            const centerX = WIDTH / 2;
+            const centerY = HEIGHT / 2;
+            // Размер круга зависит от наименьшей стороны экрана
+            const baseRadius = Math.min(WIDTH, HEIGHT) / 4; 
+            const barCount = 128; // Количество сегментов в круге
+            const dataStep = Math.floor(bufferLength / barCount);
+            
+            // 3. Анализ Бас-Энергии (для эффекта "дергания" и свечения)
+            let bassEnergy = 0;
+            // Анализируем первые 10 частотных корзин для низких частот
+            const BASS_BINS = 10; 
+            for (let i = 0; i < BASS_BINS; i++) {
+                bassEnergy += freqDataArray[i];
             }
+            
+            // Нормализация энергии баса (0..1)
+            const normalizedBass = (bassEnergy / (255 * BASS_BINS)); 
+            // Амплитуда волны: базовая 1.0, с басом до 1.4
+            const amplitudeScale = 1.0 + normalizedBass * 0.4; 
+            
+            // 4. Настройка стилей для круга (Яркий Пурпурный Неон)
+            canvasCtx.strokeStyle = '#FF00FF'; // Маджента
+            canvasCtx.lineWidth = 4; 
+            canvasCtx.shadowColor = '#FF00FF';
+            // Свечение зависит от громкости баса
+            canvasCtx.shadowBlur = 10 + normalizedBass * 25; 
+
+            canvasCtx.beginPath();
+            
+            // 5. Отрисовка пульсирующей круговой волны
+            for(let i = 0; i <= barCount; i++) {
+                const angle = i * 2 * Math.PI / barCount;
+                const dataIndex = i * dataStep;
+                
+                // Значение частоты (0-255)
+                const freqValue = freqDataArray[dataIndex] || 0;
+                // Нормализованная амплитуда (0..1)
+                const normalizedAmplitude = freqValue / 255; 
+                
+                // Текущий радиус = Базовый Радиус + (Амплитуда * Максимальное Отклонение * Масштаб Баса)
+                const maxDeviation = baseRadius * 0.5;
+                const currentRadius = baseRadius + (normalizedAmplitude * maxDeviation * amplitudeScale);
+
+                const x = centerX + currentRadius * Math.cos(angle);
+                const y = centerY + currentRadius * Math.sin(angle);
+
+                if (i === 0) {
+                    canvasCtx.moveTo(x, y);
+                } else {
+                    canvasCtx.lineTo(x, y);
+                }
+            }
+            canvasCtx.closePath();
+            canvasCtx.stroke();
+            
+            // Сброс тени
+            canvasCtx.shadowBlur = 0; 
+            
+            // 6. Отрисовка радиальных линий (Фоновый эффект, как на картинке)
+            canvasCtx.strokeStyle = 'rgba(180, 0, 180, 0.4)'; // Темно-пурпурный
+            canvasCtx.lineWidth = 1;
+            
+            for(let i = 0; i < barCount; i++) {
+                const angle = i * 2 * Math.PI / barCount;
+                const dataIndex = i * dataStep;
+                const freqValue = freqDataArray[dataIndex] || 0;
+                const normalizedValue = freqValue / 255; 
+                
+                // Длина линии зависит от частоты
+                const lineLength = normalizedValue * baseRadius * 0.7; 
+
+                canvasCtx.beginPath();
+                // Линия идет от внутреннего края круга наружу
+                const innerX = centerX + (baseRadius * 0.9) * Math.cos(angle);
+                const innerY = centerY + (baseRadius * 0.9) * Math.sin(angle);
+                
+                const outerX = centerX + (baseRadius * 0.9 + lineLength) * Math.cos(angle);
+                const outerY = centerY + (baseRadius * 0.9 + lineLength) * Math.sin(angle);
+                
+                canvasCtx.moveTo(innerX, innerY); 
+                canvasCtx.lineTo(outerX, outerY);
+                canvasCtx.stroke();
+            }
+
+            // 7. Центральная заливка (для чистоты)
+            canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.5)'; // Полупрозрачный черный
+            canvasCtx.beginPath();
+            canvasCtx.arc(centerX, centerY, baseRadius * 0.9, 0, 2 * Math.PI);
+            canvasCtx.fill();
         }
 
         /**
-         * Устанавливает размеры холста в соответствии с его контейнером.
+         * Устанавливает размеры холста в соответствии с размерами окна (полноэкранный режим).
          */
         function resizeCanvas() {
-            // Размеры холста должны соответствовать его CSS-размерам
-            const container = visualizerCanvas.parentElement;
-            if (container) {
-                visualizerCanvas.width = container.clientWidth;
-                visualizerCanvas.height = 96; // Фиксированная высота 96px (h-24)
-            }
+            // Размеры холста должны соответствовать размерам окна для полноэкранного визуализатора
+            visualizerCanvas.width = window.innerWidth;
+            visualizerCanvas.height = window.innerHeight;
             
-            // Если анимация идет, перерисовываем
             if (animationFrameId) {
                 drawVisualizer(); 
             }
@@ -232,50 +295,63 @@
         }
 
         /**
-         * Симулирует загрузку ресурсов.
+         * Симулирует загрузку ресурсов (с кэшированием видео).
          */
-        function simulateLoad() {
+        async function simulateLoad() {
             const isFirstLoad = localStorage.getItem(CACHE_KEY) === null;
-            let loadTime;
+            const startTime = performance.now();
             let messageText;
+            const minLoadTime = 500; 
 
             if (isFirstLoad) {
-                loadTime = 3000;
-                messageText = 'Кэш не найден. Первая загрузка будет долгой. Сохраняем файлы...';
-                
-                setTimeout(() => {
+                messageText = 'Кэш не найден. Первая загрузка будет долгой: загружаем все видео...';
+                loadingMessage.textContent = messageText;
+
+                try {
+                    const fetchPromises = VIDEO_LIST.map(url => 
+                        fetch(url, { mode: 'cors', cache: 'force-cache' }) 
+                    );
+                    
+                    await Promise.all(fetchPromises);
+                    
+                    const elapsed = performance.now() - startTime;
+                    const remainingTime = Math.max(0, 3000 - elapsed); 
+
+                    await new Promise(resolve => setTimeout(resolve, remainingTime));
+                    
                     localStorage.setItem(CACHE_KEY, 'true');
-                }, loadTime);
+                    messageText = 'Видео успешно закэшированы! Теперь все будет быстро.';
+
+                } catch (e) {
+                    console.error("Ошибка при предварительной загрузке видео:", e);
+                    messageText = 'Ошибка кэширования. Продолжаем, но загрузка может быть долгой.';
+                    await new Promise(resolve => setTimeout(resolve, 3000)); 
+                }
 
             } else {
-                loadTime = 500;
                 messageText = 'Кэш найден! Загрузка займет всего полсекунды.';
+                loadingMessage.textContent = messageText;
+                await new Promise(resolve => setTimeout(resolve, minLoadTime));
             }
 
-            loadingMessage.textContent = messageText;
-
+            loadingMessage.textContent = messageText; 
+            loadingScreen.style.opacity = '0';
+            
             setTimeout(() => {
-                loadingScreen.style.opacity = '0';
-                
-                setTimeout(() => {
-                    loadingScreen.classList.add('hidden');
-                    mainScreen.classList.remove('hidden');
-                    mainScreen.style.opacity = '1'; 
-                }, 1000);
-
-            }, loadTime);
+                loadingScreen.classList.add('hidden');
+                mainScreen.classList.remove('hidden');
+                mainScreen.style.opacity = '1'; 
+            }, 1000);
         }
         
         /**
          * Воспроизводит видео по заданному индексу.
-         * @param {number} index Индекс видео в массиве VIDEO_LIST.
          */
         function playVideo(index) {
             if (index >= VIDEO_LIST.length) {
                 showMessage("Схватка окончена! Все видео были показаны.");
                 currentVideoIndex = 0; 
                 
-                // Остановка визуализатора
                 if (animationFrameId) {
                     cancelAnimationFrame(animationFrameId);
                     animationFrameId = null;
@@ -288,13 +364,12 @@
 
             currentVideoIndex = index;
             battleVideo.src = VIDEO_LIST[currentVideoIndex];
-            videoLoading.classList.remove('hidden'); // Показываем индикатор загрузки видео
+            videoLoading.classList.remove('hidden'); 
             
-            // Принудительная загрузка видео
             battleVideo.load();
             
             battleVideo.play().then(() => {
-                videoLoading.classList.add('hidden'); // Скрываем индикатор после начала воспроизведения
+                videoLoading.classList.add('hidden'); 
                 
                 if (audioCtx && audioCtx.state === 'suspended') {
                     audioCtx.resume();
@@ -304,10 +379,9 @@
                     drawVisualizer(); 
                 }
             }).catch(e => {
-                videoLoading.classList.add('hidden'); // Скрываем индикатор при ошибке
+                videoLoading.classList.add('hidden'); 
                 console.error(`Ошибка при воспроизведении видео №${index + 1} (${VIDEO_LIST[currentVideoIndex]}):`, e);
-                // Пропускаем проблемное видео и переходим к следующему
-                showMessage(`Ошибка загрузки видео №${index + 1}. Переход к следующему.`);
+                showMessage(`Ошибка воспроизведения видео №${index + 1}.`);
                 playVideo(currentVideoIndex + 1);
             });
         }
@@ -333,7 +407,10 @@
         // =================================================================
 
         // Запуск симуляции загрузки при старте
-        window.onload = simulateLoad;
+        window.onload = () => {
+            simulateLoad();
+            resizeCanvas(); 
+        };
 
         // Обработчик кнопки "Начать схватку"
         startButton.addEventListener('click', startBattle);
@@ -357,6 +434,10 @@
         
         // Запуск визуализатора при возобновлении воспроизведения
         battleVideo.addEventListener('play', () => {
+            // Возобновление AudioContext после взаимодействия пользователя, если он был приостановлен
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
             if (!animationFrameId && analyser) {
                 drawVisualizer();
             }
