@@ -3,603 +3,372 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Интерактивное Кино</title>
-    <!-- Подключение Tailwind CSS для стилей -->
+    <title>Приложение для Схватки</title>
+    <!-- Подключаем Tailwind CSS для стилей -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Установка шрифта Inter -->
     <style>
-        /* Общие стили для максимального погружения */
+        /* Устанавливаем шрифт Inter по умолчанию и черный фон для всего тела */
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #000000; /* Черный фон */
-            margin: 0;
-            padding: 0;
-            overflow: hidden; /* Убираем скролл */
-            color: #ffffff;
-        }
-
-        /* Видео заполняет весь экран (задний план) */
-        #video-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 10;
-            /* Начинаем с невидимого видео, чтобы избежать вспышки */
-            opacity: 0; 
-            transition: opacity 1s ease;
-        }
-        #game-video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover; /* Видео полностью покрывает область */
-            pointer-events: none; /* Запрещает взаимодействие с видео */
-            transition: filter 0.5s ease; /* Добавляем плавный переход для фильтра */
-        }
-        
-        /* Эффект заморозки и обесцвечивания */
-        #game-video.frozen {
-            filter: grayscale(100%); /* Делает видео черно-белым */
-        }
-
-        /* Стиль загрузочного экрана */
-        #loading-screen {
-            position: fixed;
-            inset: 0;
             background-color: #000000;
-            z-index: 9999;
+            color: #ffffff;
+            height: 100vh;
+            margin: 0;
             display: flex;
-            flex-direction: column;
-            align-items: center;
             justify-content: center;
-            transition: opacity 0.5s ease-in-out;
-            cursor: default;
+            align-items: center;
+            overflow: hidden;
         }
-        /* Анимация мигания для текста "З А Г Р У З К А" */
-        .animate-pulse {
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        /* Анимация вращающегося лоадера */
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: .5; }
-        }
-
-        /* Интерфейс (контейнер выбора) - только позиционирование */
-        #movie-interface {
-            position: fixed;
-            bottom: 50px; /* Отступ снизу */
-            right: 50px; /* Отступ справа */
-            left: 50px; /* Добавили отступ слева, чтобы можно было центрировать кнопку */
-            z-index: 20;
-            width: auto; /* Ширина по контенту */
-            padding: 0;
-            transform: translateY(100px); /* Скрыто ниже */
-            opacity: 0;
-            visibility: hidden; /* Гарантированно скрыто */
-            transition: transform 0.5s ease, opacity 0.5s ease, visibility 0.5s; 
-            pointer-events: none;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end; /* Выравнивание кнопок по правому краю */
-        }
-
-        #movie-interface.active {
-            transform: translateY(0); /* Показываем контейнер */
-            opacity: 1;
-            visibility: visible !important; /* Принудительно показываем */
-            pointer-events: auto;
-        }
-        
-        /* Специальный стиль для центрирования одной кнопки "Н А Ч А Т Ь" */
-        #movie-interface.centered {
-            align-items: center; /* Центрируем содержимое по горизонтали */
-        }
-
-
-        /* Адаптивность для мобильных */
-        @media (max-width: 640px) {
-            #movie-interface {
-                bottom: 20px;
-                right: 20px;
-                left: 20px;
-                align-items: center; /* Центрируем кнопки на мобильном */
-            }
-            #choices-container {
-                flex-direction: column;
-                gap: 0.75rem;
-            }
-        }
-
-        /* Стиль кнопок: Белый текст с черным ореолом (текст-тень) */
-        .choice-btn {
-            background-color: transparent;
-            border: none;
-            color: #ffffff; /* Белый текст */
-            text-align: right;
-            font-weight: 700; /* Жирный текст */
-            font-size: 1.25rem; /* Увеличенный размер */
-            padding: 0.5rem 0.75rem; /* Минимальный padding для удобства клика */
-            border-radius: 0.25rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            white-space: nowrap; /* Чтобы текст не переносился, если помещается */
-            /* Черная тень вокруг текста для контраста */
-            text-shadow: 0 0 4px #000000, 0 0 4px #000000, 0 0 6px #000000;
-        }
-        .choice-btn:hover {
-            /* Усиление свечения (белая тень) и черного ореола */
-            text-shadow: 0 0 15px #ffffff, 0 0 10px #000000, 0 0 8px #000000;
-            background-color: rgba(0, 0, 0, 0.4); /* Легкая темная подсветка фона при наведении */
-            transform: scale(1.05); /* Небольшое увеличение */
-        }
-        /* Стиль для кнопки "Пустошь" на начальном экране */
-        #wasteland-start-btn {
-            background-color: #fff;
-            color: #000;
-            text-shadow: none;
-            padding: 1rem 3rem;
-            border-radius: 9999px; /* Круглые края */
-            font-size: 1.5rem;
-            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.3);
-            font-weight: 700;
-        }
-        #wasteland-start-btn:hover {
-            box-shadow: 0 6px 20px rgba(255, 255, 255, 0.5);
-            background-color: #eee;
+        .spinner {
+            border-top-color: #f87171; /* Красный цвет для спиннера */
+            animation: spin 1s linear infinite;
         }
     </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'custom-red': '#dc2626', /* Интенсивный красный */
+                        'custom-red-hover': '#b91c1c',
+                    }
+                }
+            }
+        }
+    </script>
 </head>
 <body>
 
-    <!-- Загрузочный экран -->
-    <div id="loading-screen">
-        <!-- Текст, который будет меняться. На старте будет скрыт, потом показан для загрузки. -->
-        <p id="loading-title" class="text-4xl text-white font-bold tracking-widest hidden">И Н Т Е Р А К Т И В Н О Е</p>
-        <p id="loading-status" class="text-xl text-gray-300 mt-2 hidden">К И Н О: П У С Т О Ш Ь</p>
-        
-        <!-- Кнопка будет добавлена через JS в showStartButtonScreen -->
+    <!-- 1. Экран Загрузки (Loading Screen) -->
+    <div id="loading-screen" class="absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-1000 bg-black z-20">
+        <!-- Спиннер -->
+        <div class="spinner w-12 h-12 border-4 border-gray-700 rounded-full"></div>
+        <p class="mt-4 text-xl text-gray-400" id="loading-message">
+            Проверяем кэш...
+        </p>
+        <p class="mt-2 text-sm text-gray-500">
+            (Настоящая загрузка файлов симулируется задержкой)
+        </p>
+    </div>
+
+    <!-- 2. Основной Экран (Main Screen) -->
+    <div id="main-screen" class="hidden absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-1000 bg-black z-10">
+        <h1 class="text-4xl sm:text-6xl font-extrabold mb-8 text-gray-100">ПОЛЕ БИТВЫ</h1>
+        <p class="text-xl text-gray-400 mb-12">
+            Вы готовы к схватке?
+        </p>
+        <!-- Красная Кнопка -->
+        <button id="start-button" class="px-12 py-4 text-xl font-bold rounded-xl shadow-lg transition duration-300 ease-in-out bg-custom-red hover:bg-custom-red-hover active:bg-red-700 transform hover:scale-105">
+            НАЧАТЬ СХВАТКУ
+        </button>
     </div>
     
-    <!-- Музыка загрузки -->
-    <audio id="loading-audio" loop src="https://files.catbox.moe/e81wbk.mp3"></audio>
-
-    <!-- Контейнер для видео (Задний план) -->
-    <div id="video-container">
-        <video id="game-video" muted>
-            Ваш браузер не поддерживает тег video.
-        </video>
-    </div>
-
-    <!-- Новые аудио-элементы для звуковых эффектов и фоновой музыки сцен -->
-    <audio id="scene-effect-audio" preload="auto"></audio>
-    <audio id="scene-music-audio" preload="auto" loop></audio>
-
-    <!-- Интерфейс игры (Контейнер только для кнопок выбора) -->
-    <div id="movie-interface"> 
-        
-        <!-- Контейнер для кнопок выбора -->
-        <div id="choices-container" class="flex flex-col space-y-3 w-full">
+    <!-- 3. Экран Видео (Video Screen) -->
+    <div id="video-screen" class="hidden absolute inset-0 bg-black flex items-center justify-center z-10">
+        <!-- Контейнер, заполняющий весь экран и содержащий видео и визуализатор -->
+        <div class="relative w-full h-full">
+            <!-- Видео на заднем плане, растянуто на весь экран -->
+            <!-- object-cover обеспечивает полноэкранное отображение вертикального видео -->
+            <video id="battle-video" class="w-full h-full object-cover absolute top-0 left-0" autoplay crossorigin="anonymous" muted></video>
             
-            <!-- Скрытые элементы для отладки -->
-            <div class="hidden">
-                 <div id="narrative-text"></div> 
+            <!-- Визуализатор поверх видео, прикреплен к нижней части -->
+            <canvas id="visualizer-canvas" class="absolute bottom-0 left-0 w-full h-24 z-20"></canvas>
+            
+            <!-- Индикатор загрузки видео (поверх) -->
+            <div id="video-loading" class="absolute inset-0 bg-black bg-opacity-75 flex flex-col items-center justify-center hidden z-30">
+                <div class="spinner w-16 h-16 border-8 border-gray-600 rounded-full"></div>
+                <p class="mt-4 text-xl text-gray-300">Загрузка видео...</p>
             </div>
         </div>
     </div>
 
-    <script type="module">
 
-        // --- КОНСТАНТЫ СЮЖЕТА И ХРАНЕНИЯ ---
-        
-        // Константы для IndexedDB (кэш файлов)
-        const DB_NAME = 'MovieGameCacheDB';
-        const STORE_NAME = 'assetStore';
-        const DB_VERSION = 1;
+    <!-- Кастомное Модальное Сообщение (вместо alert) -->
+    <div id="message-box" class="hidden fixed top-0 left-0 w-full h-full bg-black bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-gray-800 p-6 rounded-xl shadow-2xl max-w-sm text-center">
+            <p class="text-white text-lg mb-4" id="box-message"></p>
+            <button onclick="document.getElementById('message-box').classList.add('hidden')" class="bg-custom-red text-white px-4 py-2 rounded-lg hover:bg-custom-red-hover">Закрыть</button>
+        </div>
+    </div>
 
-        // Определяем структуру сюжета игры
-        const story = {
-            'start': {
-                // Видео, которое проигрывается ДО кнопки "Н А Ч А Т Ь"
-                videoUrl: 'https://files.catbox.moe/gwba6a.mp4', 
-                text: 'Начальная сцена, нажмите "Н А Ч А Т Ь".',
-                choices: [] 
-            },
-            'scene_01_intro': { // НОВАЯ СЦЕНА: Проигрывает видео-погоню
-                videoUrl: 'https://files.catbox.moe/m3px4x.mp4', 
-                text: 'Погоня!',
-                choices: [],
-                // Автоматический переход к сцене выбора после окончания видео
-                nextScene: 'scene_01_a' 
-            },
-            'scene_01_a': { // СТАНДАРТНАЯ СЦЕНА ВЫБОРА
-                // Используем черный плейсхолдер, так как видео уже проиграно в intro
-                videoUrl: 'https://placehold.co/1280x720/000000/FFFFFF?text=СЦЕНА+ВЫБОРА+В+КОРИДОРЕ', 
-                text: 'Вы бежите по узкому коридору, преследуемый чем-то в темноте. Впереди развилка: направо, вниз, или налево, наверх?',
-                choices: [
-                    { text: 'Резко свернуть направо (вниз)', nextId: 'scene_02_fail' },
-                    { text: 'Налево, к лестнице (наверх)', nextId: 'scene_02_success' }
-                ]
-            },
-            'scene_02_success': {
-                // Плейсхолдер
-                videoUrl: 'https://placehold.co/1280x720/000000/FFFFFF?text=СЦЕНА+2%0A%0A(УСПЕХ)',
-                text: 'Выбор верный! Лестница ведет к выходу. Теперь вы можете выйти.',
-                choices: [
-                    { text: 'Использовать ключ и выйти', nextId: 'end_win' }
-                ]
-            },
-            'scene_02_fail': {
-                // Сцена проигрыша
-                videoUrl: 'https://placehold.co/1280x720/8B0000/FFFFFF?text=СЦЕНА+ПРОИГРЫША%0A%0A(ПОЙМАН)', 
-                text: 'Неверный поворот. Тупик. Вас настигли. Игра окончена.',
-                choices: [
-                    { text: 'Начать новую игру', nextId: 'start' }
-                ],
-                effectAudio: 'https://files.catbox.moe/zuo7xz.mp3' 
-            },
-            'end_win': {
-                // Концовка
-                videoUrl: 'https://placehold.co/1280x720/000000/FFFFFF?text=КОНЦОВКА%0A%0A(ПОБЕДА)', 
-                text: 'Поздравляем! Вы прошли через все испытания и выбрались на свободу. Продолжение следует...',
-                choices: [
-                    { text: 'Начать новую игру', nextId: 'start' }
-                ],
-                musicAudio: 'https://files.catbox.moe/64kb40.mp3',
-                musicVolume: 0.3 
-            }
-        };
 
-        // --- Элементы DOM ---
+    <script type="text/javascript">
+        // Инициализация элементов
         const loadingScreen = document.getElementById('loading-screen');
-        const loadingTitle = document.getElementById('loading-title'); 
-        const loadingStatus = document.getElementById('loading-status');
-        const loadingAudio = document.getElementById('loading-audio');
-        const movieInterface = document.getElementById('movie-interface');
-        const videoContainer = document.getElementById('video-container');
-        const videoElement = document.getElementById('game-video');
-        const choicesContainer = document.getElementById('choices-container');
-        const narrativeText = document.getElementById('narrative-text'); 
-        const sceneEffectAudio = document.getElementById('scene-effect-audio');
-        const sceneMusicAudio = document.getElementById('scene-music-audio');
+        const mainScreen = document.getElementById('main-screen');
+        const videoScreen = document.getElementById('video-screen');
+        const battleVideo = document.getElementById('battle-video');
+        const visualizerCanvas = document.getElementById('visualizer-canvas');
+        const canvasCtx = visualizerCanvas.getContext('2d');
+        const loadingMessage = document.getElementById('loading-message');
+        const startButton = document.getElementById('start-button');
+        const messageBox = document.getElementById('message-box');
+        const boxMessage = document.getElementById('box-message');
+        const videoLoading = document.getElementById('video-loading'); // Новый элемент для индикации загрузки видео
+
+        // Ключ для кэша в localStorage
+        const CACHE_KEY = 'appCacheLoaded';
         
-        // Маппинг для хранения Blob URL (локально закэшированных ссылок в памяти)
-        const assetCacheMap = new Map(); 
-
-        // --- IndexedDB УТИЛИТЫ ДЛЯ КЭШИРОВАНИЯ ---
-
-        /** Открывает соединение с базой данных IndexedDB. */
-        function openDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, DB_VERSION);
-                request.onerror = event => {
-                    console.error('Ошибка IndexedDB:', event.target.error);
-                    reject(event.target.error);
-                };
-                request.onsuccess = event => resolve(event.target.result);
-                request.onupgradeneeded = event => {
-                    const db = event.target.result;
-                    if (!db.objectStoreNames.contains(STORE_NAME)) {
-                        db.createObjectStore(STORE_NAME);
-                        console.log('Создано хранилище IndexedDB:', STORE_NAME);
-                    }
-                };
-            });
-        }
-
-        /** Сохраняет ассет (Blob) в IndexedDB по его URL. */
-        function saveAssetToDB(db, url, blob) {
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction([STORE_NAME], 'readwrite');
-                const store = transaction.objectStore(STORE_NAME);
-                const request = store.put(blob, url);
-
-                request.onsuccess = () => resolve();
-                request.onerror = event => {
-                    console.error(`Ошибка сохранения ассета ${url}:`, event.target.error);
-                    reject(event.target.error);
-                };
-            });
-        }
-
-        /** Получает ассет (Blob) из IndexedDB по его URL. */
-        function getAssetFromDB(db, url) {
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction([STORE_NAME], 'readonly');
-                const store = transaction.objectStore(STORE_NAME);
-                const request = store.get(url);
-
-                request.onsuccess = event => resolve(event.target.result || null); 
-                request.onerror = event => {
-                    console.error(`Ошибка получения ассета ${url}:`, event.target.error);
-                    reject(event.target.error);
-                };
-            });
-        }
+        // =================================================================
+        // ВАШ СПИСОК ВИДЕО
+        // =================================================================
+        const VIDEO_LIST = [
+            'https://files.catbox.moe/y09yxd.mp4', // Видео 1
+            // Добавьте больше видео по необходимости: 'ваш_url_видео_2.mp4',
+        ];
+        let currentVideoIndex = 0;
         
-        // --- ПРЕДВАРИТЕЛЬНАЯ ЗАГРУЗКА АССЕТОВ ---
+        // =================================================================
+        // НАСТРОЙКИ АУДИО ВИЗУАЛИЗАТОРА
+        // =================================================================
+        let audioCtx = null;
+        let analyser = null;
+        let source = null;
+        let dataArray = null;
+        let bufferLength = 0;
+        let animationFrameId = null;
 
         /**
-         * Принудительно загружает ассет (видео или аудио) и создает локальный Blob URL.
+         * Инициализирует Web Audio API. Должен быть вызван после взаимодействия с пользователем.
          */
-        async function preloadAsset(url) {
-            if (assetCacheMap.has(url)) return;
-
-            let blob;
-            let db;
-
-            if (!url.includes('http')) {
-                assetCacheMap.set(url, url);
-                return;
-            }
+        function initAudioContext() {
+            // Если контекст уже создан, выходим
+            if (audioCtx) return; 
 
             try {
-                db = await openDB();
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 256; 
+                bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
+
+                // Подключаем видео элемент к аудио контексту
+                source = audioCtx.createMediaElementSource(battleVideo);
+                source.connect(analyser);
+                analyser.connect(audioCtx.destination);
                 
-                // 1. Попытка получить из IndexedDB
-                const cachedBlob = await getAssetFromDB(db, url);
+                // Устанавливаем unmute, так как браузеры могут блокировать autoplay со звуком
+                battleVideo.muted = false;
 
-                if (cachedBlob) {
-                    blob = cachedBlob;
-                } else {
-                    // 2. Загрузка из сети
-                    const response = await fetch(url);
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    blob = await response.blob();
-
-                    // 3. Сохранение в IndexedDB
-                    await saveAssetToDB(db, url, blob);
-                }
-                
-                // 4. Создание Blob URL и сохранение в оперативной памяти
-                const blobUrl = URL.createObjectURL(blob);
-                assetCacheMap.set(url, blobUrl);
-
-            } catch (error) {
-                console.error(`Ошибка кэширования или загрузки ассета: ${url}. Будет использована исходная ссылка.`, error);
-                // Fallback: сохраняем исходный URL
-                assetCacheMap.set(url, url); 
+                console.log("AudioContext успешно инициализирован.");
+            } catch (e) {
+                console.error("Ошибка инициализации AudioContext:", e);
+                // Отключаем визуализатор, если аудио не работает
+                visualizerCanvas.style.display = 'none'; 
+                showMessage("Ошибка инициализации аудио для визуализатора. Проверьте, что видеофайл доступен по CORS.");
             }
         }
 
-        async function preloadAssets() {
-            
-            const allUrls = new Set();
-            Object.values(story).forEach(scene => {
-                if (scene.videoUrl) allUrls.add(scene.videoUrl);
-                if (scene.effectAudio) allUrls.add(scene.effectAudio);
-                if (scene.musicAudio) allUrls.add(scene.musicAudio);
-            });
-            
-            const assetUrls = Array.from(allUrls).filter(url => url && url.includes('http'));
+        /**
+         * Отрисовывает визуализатор частот на холсте.
+         */
+        function drawVisualizer() {
+            animationFrameId = requestAnimationFrame(drawVisualizer);
 
-            const totalAssets = assetUrls.length;
-            let loadedCount = 0;
+            if (!analyser) return;
 
-            const preloadPromises = assetUrls.map(url => 
-                preloadAsset(url).then(() => {
-                    loadedCount++;
-                    loadingStatus.textContent = `Загрузка ассетов: ${loadedCount} из ${totalAssets}...`;
-                })
-            );
-            
-            loadingStatus.textContent = `Загрузка ассетов: ${loadedCount} из ${totalAssets}...`;
-            
-            await Promise.all(preloadPromises);
-            
-            loadingStatus.textContent = 'Загрузка завершена. Ждите клика...';
+            // Получаем данные частот
+            analyser.getByteFrequencyData(dataArray);
+
+            // Очищаем холст (полупрозрачный черный фон поверх видео)
+            canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.6)'; 
+            canvasCtx.fillRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
+
+            const barWidth = (visualizerCanvas.width / bufferLength) * 2; 
+            let x = 0;
+            const heightMultiplier = 0.95; // Максимальная высота столбика (95% от канваса)
+
+            for(let i = 0; i < bufferLength; i++) {
+                // Высота столбика
+                const barHeight = (dataArray[i] / 256) * visualizerCanvas.height * heightMultiplier + 2; 
+                
+                // Создаем градиент для динамичности (от светлого к темному красному)
+                const r = 220; 
+                const g = 38;  
+                const b = 38;  
+
+                const gradient = canvasCtx.createLinearGradient(0, visualizerCanvas.height, 0, visualizerCanvas.height - barHeight);
+                gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.2)`);
+                gradient.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, 0.7)`);
+                gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 1.0)`);
+                
+                canvasCtx.fillStyle = gradient;
+
+                // Рисуем столбик с небольшим зазором
+                canvasCtx.fillRect(x, visualizerCanvas.height - barHeight, barWidth - 1, barHeight); 
+
+                x += barWidth;
+            }
         }
 
-        // --- ОБРАБОТЧИКИ СЦЕН И ИГРЫ ---
-
-        function handleSceneEnd(sceneId) {
-            const scene = story[sceneId];
-            
-            // 1. Сцена 'start' (специальный случай для кнопки "НАЧАТЬ")
-            if (sceneId === 'start') {
-                videoElement.pause(); 
-                videoElement.classList.add('frozen'); 
-                movieInterface.classList.add('active', 'centered'); 
-                
-                // Очищаем старые кнопки
-                choicesContainer.innerHTML = '';
-                
-                // Создаем кнопку "Н А Ч А Т Ь"
-                const button = document.createElement('button');
-                button.textContent = 'Н А Ч А Т Ь';
-                button.className = 'choice-btn transition duration-200 ease-in-out text-2xl px-8 py-4'; 
-                
-                button.onclick = () => {
-                    movieInterface.classList.remove('active', 'centered');
-                    // Переход к новой промежуточной сцене с видео-погоней
-                    loadScene('scene_01_intro');   
-                };
-                choicesContainer.appendChild(button);
-                return;
+        /**
+         * Устанавливает размеры холста в соответствии с его контейнером.
+         */
+        function resizeCanvas() {
+            // Размеры холста должны соответствовать его CSS-размерам
+            const container = visualizerCanvas.parentElement;
+            if (container) {
+                visualizerCanvas.width = container.clientWidth;
+                visualizerCanvas.height = 96; // Фиксированная высота 96px (h-24)
             }
             
-            // НОВАЯ ЛОГИКА: Автоматический переход, если задана nextScene и нет выборов
-            if (scene.nextScene && (!scene.choices || scene.choices.length === 0)) {
-                // Небольшая задержка для плавного перехода
-                setTimeout(() => loadScene(scene.nextScene), 50); 
-                return;
+            // Если анимация идет, перерисовываем
+            if (animationFrameId) {
+                drawVisualizer(); 
             }
+        }
 
+        /**
+         * Отображает кастомное модальное сообщение (вместо alert()).
+         * @param {string} message Сообщение для отображения.
+         */
+        function showMessage(message) {
+            boxMessage.textContent = message;
+            messageBox.classList.remove('hidden');
+        }
 
-            // 2. ВСЕ ОСТАЛЬНЫЕ СЦЕНЫ (С ВЫБОРОМ ИЛИ КОНЦОВКИ)
-            // Замораживаем и делаем серым
-            videoElement.pause();
-            videoElement.classList.add('frozen'); 
+        /**
+         * Симулирует загрузку ресурсов.
+         */
+        function simulateLoad() {
+            const isFirstLoad = localStorage.getItem(CACHE_KEY) === null;
+            let loadTime;
+            let messageText;
 
-            // Очищаем старые кнопки (на случай, если они не были созданы в loadScene)
-            choicesContainer.innerHTML = '';
-            movieInterface.classList.remove('active', 'centered');
+            if (isFirstLoad) {
+                loadTime = 3000;
+                messageText = 'Кэш не найден. Первая загрузка будет долгой. Сохраняем файлы...';
+                
+                setTimeout(() => {
+                    localStorage.setItem(CACHE_KEY, 'true');
+                }, loadTime);
 
-            if (scene.choices.length > 0) {
-                 // Если есть выбор, показываем его
-                 movieInterface.classList.remove('centered');
-                 movieInterface.classList.add('active');
-                 // Кнопки уже созданы в loadScene, просто показываем интерфейс
-                 return;
             } else {
-                console.log("Достигнута конечная сцена без активного выбора.");
-            }
-        }
-
-        function loadScene(sceneId) {
-            const scene = story[sceneId];
-            if (!scene) {
-                console.error(`Сцена с ID "${sceneId}" не найдена. Переход на 'start'.`);
-                return loadScene('start');
-            }
-            
-            // 1. Скрываем интерфейс и убираем серый фильтр
-            movieInterface.classList.remove('active', 'centered');
-            videoElement.classList.remove('frozen'); 
-            
-            // --- УПРАВЛЕНИЕ АУДИО СЦЕНЫ ---
-            sceneEffectAudio.pause();
-            sceneEffectAudio.currentTime = 0;
-            sceneMusicAudio.pause();
-            sceneMusicAudio.currentTime = 0;
-            
-            if (scene.effectAudio) {
-                sceneEffectAudio.src = assetCacheMap.get(scene.effectAudio) || scene.effectAudio;
-                sceneEffectAudio.load();
-                sceneEffectAudio.play().catch(e => console.warn("Не удалось запустить эффект аудио:", e));
+                loadTime = 500;
+                messageText = 'Кэш найден! Загрузка займет всего полсекунды.';
             }
 
-            if (scene.musicAudio) {
-                const musicUrl = assetCacheMap.get(scene.musicAudio) || scene.musicAudio;
-                const volume = scene.musicVolume !== undefined ? scene.musicVolume : 1.0;
+            loadingMessage.textContent = messageText;
+
+            setTimeout(() => {
+                loadingScreen.style.opacity = '0';
                 
-                sceneMusicAudio.src = musicUrl;
-                sceneMusicAudio.volume = volume; 
-                sceneMusicAudio.load();
-                sceneMusicAudio.play().catch(e => console.warn("Не удалось запустить фоновую музыку:", e));
-            }
-            // -----------------------------
-            
-            // 2. Обновляем видео и запускаем
-            videoElement.src = assetCacheMap.get(scene.videoUrl) || scene.videoUrl;
-            videoElement.load();
-            videoElement.muted = false; 
-            
-            // 3. Устанавливаем обработчик onended для этой сцены
-            videoElement.onended = () => handleSceneEnd(sceneId);
+                setTimeout(() => {
+                    loadingScreen.classList.add('hidden');
+                    mainScreen.classList.remove('hidden');
+                    mainScreen.style.opacity = '1'; 
+                }, 1000);
 
-            // --- КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: МЕНЮ 'START' ---
-            if (sceneId === 'start') {
-                // Здесь мы хотим, чтобы видео проигралось один раз, затем показалась кнопка "Н А Ч А Т Ь"
-                 videoElement.onended = () => handleSceneEnd(sceneId); 
-                // Устанавливаем oncanplaythrough, чтобы начать воспроизведение, как только видео будет готово
-                videoElement.oncanplaythrough = () => {
-                    videoElement.play().catch(e => console.log("Ошибка автозапуска видео на стартовом экране."));
-                    videoElement.oncanplaythrough = null; // Удаляем, чтобы не вызывалось повторно
-                };
-            }
-            // ------------------------------------------
-
-            videoElement.play().catch(e => {
-                console.log("Ошибка автозапуска видео:", e);
-                // Если не удалось автовоспроизведение, все равно показываем интерфейс
-                if (scene.choices.length > 0) {
-                     movieInterface.classList.add('active');
-                } else {
-                    // Если нет выбора, но видео не запустилось (например, концовка), принудительно вызываем end
-                    handleSceneEnd(sceneId);
-                }
-            });
-
-            // 4. Обновляем текст и рендерим кнопки
-            narrativeText.textContent = scene.text; 
-            choicesContainer.innerHTML = ''; 
-
-            if (scene.choices && scene.choices.length > 0) {
-                scene.choices.forEach(choice => {
-                    const button = document.createElement('button');
-                    button.textContent = choice.text;
-                    button.className = 'choice-btn transition duration-200 ease-in-out text-base text-right';
-                    
-                    button.onclick = () => {
-                        Array.from(choicesContainer.children).forEach(btn => btn.disabled = true);
-                        loadScene(choice.nextId);
-                    };
-                    choicesContainer.appendChild(button);
-                });
-            }
-        }
-
-        // --- УПРАВЛЕНИЕ ЗАГРУЗКОЙ И СТАРТОМ ---
-
-        function showStartButtonScreen() {
-            loadingScreen.removeEventListener('click', startGame);
-            loadingScreen.innerHTML = ''; 
-
-            const startButton = document.createElement('button');
-            startButton.id = 'wasteland-start-btn';
-            startButton.textContent = 'В О Й Т И   В   П У С Т О Ш Ь';
-            startButton.className = 'mt-0'; 
-            
-            loadingScreen.appendChild(startButton);
-            startButton.onclick = startLoading;
-        }
-
-        function startLoading() {
-            
-            // 1. Запускаем музыку ПЕРВЫМ ДЕЛОМ, привязывая ее к клику
-            loadingAudio.volume = 0.5; 
-            loadingAudio.play().catch(e => console.warn("Не удалось запустить музыку.", e));
-
-            // 2. Убираем кнопку
-            const startButton = document.getElementById('wasteland-start-btn');
-            if (startButton) startButton.remove();
-            
-            // 3. Добавляем обратно элементы текста загрузки в DOM
-            loadingScreen.appendChild(loadingTitle);
-            loadingScreen.appendChild(loadingStatus);
-            
-            // 4. Обновляем текст загрузки и делаем видимым
-            loadingTitle.classList.remove('hidden');
-            loadingStatus.classList.remove('hidden');
-            loadingTitle.textContent = 'З А Г Р У З К А';
-            loadingTitle.classList.add('animate-pulse');
-            loadingStatus.textContent = 'Проверка кэша и загрузка ассетов...';
-
-            // 5. Начинаем загрузку ассетов
-            preloadAssets().then(() => {
-                // 6. Когда загрузка завершена, переходим к экрану готовности
-                showReadyScreen();
-            });
-        }
-
-        function showReadyScreen() {
-            loadingTitle.textContent = 'Н А Ж М И Т Е';
-            loadingTitle.classList.remove('animate-pulse');
-            loadingStatus.textContent = 'чтобы начать игру (кэш проверен)';
-            
-            loadingScreen.style.cursor = 'pointer';
-            loadingScreen.addEventListener('click', startGame, { once: true });
+            }, loadTime);
         }
         
-        function startGame() {
-            // 1. Плавное скрытие загрузочного экрана
-            loadingScreen.style.opacity = '0';
-            
-            setTimeout(() => {
-                loadingScreen.remove();
-                loadingAudio.pause(); // Останавливаем загрузочную музыку
+        /**
+         * Воспроизводит видео по заданному индексу.
+         * @param {number} index Индекс видео в массиве VIDEO_LIST.
+         */
+        function playVideo(index) {
+            if (index >= VIDEO_LIST.length) {
+                showMessage("Схватка окончена! Все видео были показаны.");
+                currentVideoIndex = 0; 
                 
-                videoContainer.style.opacity = '1'; 
+                // Остановка визуализатора
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                    animationFrameId = null;
+                }
                 
-                // Всегда начинаем с начальной сцены 'start'
-                loadScene('start'); 
+                videoScreen.classList.add('hidden');
+                mainScreen.classList.remove('hidden');
+                return;
+            }
 
-            }, 500); 
+            currentVideoIndex = index;
+            battleVideo.src = VIDEO_LIST[currentVideoIndex];
+            videoLoading.classList.remove('hidden'); // Показываем индикатор загрузки видео
+            
+            // Принудительная загрузка видео
+            battleVideo.load();
+            
+            battleVideo.play().then(() => {
+                videoLoading.classList.add('hidden'); // Скрываем индикатор после начала воспроизведения
+                
+                if (audioCtx && audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                
+                if (!animationFrameId && analyser) {
+                    drawVisualizer(); 
+                }
+            }).catch(e => {
+                videoLoading.classList.add('hidden'); // Скрываем индикатор при ошибке
+                console.error(`Ошибка при воспроизведении видео №${index + 1} (${VIDEO_LIST[currentVideoIndex]}):`, e);
+                // Пропускаем проблемное видео и переходим к следующему
+                showMessage(`Ошибка загрузки видео №${index + 1}. Переход к следующему.`);
+                playVideo(currentVideoIndex + 1);
+            });
+        }
+        
+        /**
+         * Запускает последовательное воспроизведение видео.
+         */
+        function startBattle() {
+            // Инициализация AudioContext и размеров Canvas должна произойти после клика пользователя
+            initAudioContext();
+            resizeCanvas(); 
+            
+            mainScreen.classList.add('hidden');
+            videoScreen.classList.remove('hidden');
+            
+            currentVideoIndex = 0; 
+            playVideo(currentVideoIndex);
         }
 
-        // --- Инициализация игры ---
-        showStartButtonScreen(); 
+
+        // =================================================================
+        // СЛУШАТЕЛИ СОБЫТИЙ
+        // =================================================================
+
+        // Запуск симуляции загрузки при старте
+        window.onload = simulateLoad;
+
+        // Обработчик кнопки "Начать схватку"
+        startButton.addEventListener('click', startBattle);
+        
+        // Обработчик для автоматического переключения видео, когда текущее заканчивается
+        battleVideo.addEventListener('ended', () => {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            playVideo(currentVideoIndex + 1);
+        });
+        
+        // Остановка визуализатора при паузе
+        battleVideo.addEventListener('pause', () => {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+        });
+        
+        // Запуск визуализатора при возобновлении воспроизведения
+        battleVideo.addEventListener('play', () => {
+            if (!animationFrameId && analyser) {
+                drawVisualizer();
+            }
+        });
+        
+        // Слушатель для изменения размера окна (для адаптивности визуализатора)
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Повторный вызов resizeCanvas, чтобы убедиться, что он работает корректно
+        window.setTimeout(resizeCanvas, 100);
+
     </script>
+
 </body>
 </html>
