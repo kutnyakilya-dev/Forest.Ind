@@ -144,19 +144,22 @@
             const minLoadTime = 500; 
 
             if (isFirstLoad) {
-                messageText = 'Кэш не найден. Первая загрузка будет долгой: загружаем все видео...';
+                messageText = 'Кэш не найден. Первая загрузка будет долгой: загружаем все видео и ждем их полной загрузки...';
                 loadingMessage.textContent = messageText;
 
                 try {
+                    // Асинхронно запускаем загрузку всех видео с принудительным кэшированием
                     const fetchPromises = VIDEO_LIST.map(url => 
                         fetch(url, { mode: 'cors', cache: 'force-cache' }) 
                     );
                     
+                    // Ждем, пока ВСЕ промисы завершатся (т.е. все видео загрузятся)
                     await Promise.all(fetchPromises);
                     
                     const elapsed = performance.now() - startTime;
                     const remainingTime = Math.max(0, 3000 - elapsed); 
 
+                    // Гарантируем минимальную задержку 3 секунды
                     await new Promise(resolve => setTimeout(resolve, remainingTime));
                     
                     localStorage.setItem(CACHE_KEY, 'true');
@@ -165,6 +168,7 @@
                 } catch (e) {
                     console.error("Ошибка при предварительной загрузке видео:", e);
                     messageText = 'Ошибка кэширования. Продолжаем, но загрузка может быть долгой.';
+                    // Гарантируем минимальную задержку 3 секунды даже при ошибке
                     await new Promise(resolve => setTimeout(resolve, 3000)); 
                 }
 
