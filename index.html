@@ -3,251 +3,262 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Приложение для Схватки</title>
-    <!-- Подключаем Tailwind CSS для стилей -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Мобильная Игра</title>
     <style>
-        /* Устанавливаем шрифт Inter по умолчанию и черный фон для всего тела */
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #000000;
-            color: #ffffff;
-            height: 100vh;
+        /* Общие стили для полного экрана и адаптации под мобильные устройства */
+        html, body {
             margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* 1. Темно-синий фон и Flexbox для разделения экрана */
+        body {
+            background-color: #1a202c; /* Темно-синий, почти черный */
+            color: #e5e7eb; /* Светлый текст */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; 
+        }
+
+        /* Область для будущей игры (займет все свободное место) */
+        .main-content {
+            flex-grow: 1;
+            width: 100%;
+            display: flex;
+            flex-direction: column; 
+            position: relative; 
+        }
+
+        /* Стиль для всех экранов (вкладок) */
+        .game-view {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            /* Выравнивание элементов внутри вкладки по центру */
+            justify-content: center;
+            align-items: center; 
+            font-size: 1.5rem;
+            transition: opacity 0.3s ease;
+            box-sizing: border-box; 
+            padding: 20px;
+        }
+        
+        /* Скрывает неактивные экраны */
+        .game-view:not(.active) {
+            display: none;
+        }
+
+        /* --- Стили для карточки Яйца --- */
+        .egg-card {
+            background-color: #0f172a; /* Более темный фон для карточки */
+            border-radius: 16px;
+            padding: 15px; /* Уменьшим padding для лучшего заполнения */
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 90%; 
+            max-width: 300px;
+            border: 1px solid #374151;
+            transition: transform 0.2s;
+        }
+
+        .egg-card:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Контейнер изображения теперь занимает 100% доступной ширины */
+        .egg-image {
+            width: 100%; 
+            height: 150px; /* Фиксированная высота для крупного визуала */
+            margin-bottom: 15px;
             display: flex;
             justify-content: center;
             align-items: center;
+            background-color: #1f2937; /* Фон для области, чтобы было видно границы */
+            border-radius: 10px;
             overflow: hidden;
         }
-        /* Анимация вращающегося лоадера */
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+
+        .egg-image img {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain; /* Сохраняет пропорции и помещает целиком */
+            border-radius: 0; 
         }
-        .spinner {
-            border-top-color: #f87171; /* Красный цвет для спиннера */
-            animation: spin 1s linear infinite;
+
+        .egg-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #f3f4f6;
+            margin-top: 5px;
+        }
+        /* --- Конец стилей для карточки Яйца --- */
+
+
+        /* 2. Панель навигации внизу */
+        .nav-panel {
+            width: 100%;
+            height: 72px; 
+            background-color: #0f172a; 
+            border-top: 1px solid #374151;
+            display: flex;
+            justify-content: space-around; 
+            align-items: center;
+            padding-bottom: env(safe-area-inset-bottom, 0); 
+            box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        /* 3. Стиль элемента навигации (иконка + текст) */
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4px 8px;
+            cursor: pointer;
+            color: #9ca3af; 
+            transition: color 0.3s, transform 0.1s;
+        }
+
+        .nav-item:hover {
+            color: #ffffff;
+        }
+        .nav-item:active {
+            transform: scale(0.95);
+        }
+
+        /* Активный элемент */
+        .nav-item.active {
+            color: #3b82f6; 
+        }
+
+        .nav-item .icon {
+            width: 24px;
+            height: 24px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+            margin-bottom: 2px;
+        }
+        
+        .nav-item .nav-text {
+            font-size: 0.7rem; 
+            font-weight: 500;
+            user-select: none; 
         }
     </style>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'custom-red': '#dc2626', /* Интенсивный красный для кнопки */
-                        'custom-red-hover': '#b91c1c',
-                    }
-                }
-            }
-        }
-    </script>
 </head>
 <body>
+    <!-- Основная область, где будет происходить игра -->
+    <div class="main-content">
+        
+        <!-- Главный экран -->
+        <div id="home-view" class="game-view">
+            <p>Добро пожаловать домой! (Главный экран)</p>
+        </div>
 
-    <!-- 1. Экран Загрузки (Loading Screen) -->
-    <div id="loading-screen" class="absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-1000 bg-black z-20">
-        <!-- Спиннер -->
-        <div class="spinner w-12 h-12 border-4 border-gray-700 rounded-full"></div>
-        <p class="mt-4 text-xl text-gray-400" id="loading-message">
-            Проверяем кэш...
-        </p>
-        <p class="mt-2 text-sm text-gray-500">
-            (Настоящая загрузка файлов симулируется задержкой)
-        </p>
-    </div>
-
-    <!-- 2. Основной Экран (Main Screen) -->
-    <div id="main-screen" class="hidden absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-1000 bg-black z-10">
-        <h1 class="text-4xl sm:text-6xl font-extrabold mb-8 text-gray-100">ПОЛЕ БИТВЫ</h1>
-        <p class="text-xl text-gray-400 mb-12">
-            Вы готовы к схватке?
-        </p>
-        <!-- Красная Кнопка -->
-        <button id="start-button" class="px-12 py-4 text-xl font-bold rounded-xl shadow-lg transition duration-300 ease-in-out bg-custom-red hover:bg-custom-red-hover active:bg-red-700 transform hover:scale-105">
-            НАЧАТЬ СХВАТКУ
-        </button>
-    </div>
-    
-    <!-- 3. Экран Видео (Video Screen) -->
-    <div id="video-screen" class="hidden absolute inset-0 bg-black flex items-center justify-center z-10">
-        <!-- Контейнер, заполняющий весь экран и содержащий видео -->
-        <div class="relative w-full h-full">
-            <!-- Видео на заднем плане, растянуто на весь экран -->
-            <!-- object-cover обеспечивает полноэкранное отображение вертикального видео -->
-            <!-- Атрибут "muted" удален, чтобы включить звук -->
-            <video id="battle-video" class="w-full h-full object-cover absolute top-0 left-0" autoplay crossorigin="anonymous"></video>
+        <!-- Экран Инвентаря -->
+        <div id="inventory-view" class="game-view">
+            <p>Ваш инвентарь пуст. (Экран Инвентаря)</p>
+        </div>
+        
+        <!-- Экран Яиц (Сделаем его активным по умолчанию, чтобы сразу увидеть результат) -->
+        <div id="egg-view" class="game-view active">
             
-            <!-- Индикатор загрузки видео (поверх) -->
-            <div id="video-loading" class="absolute inset-0 bg-black bg-opacity-75 flex flex-col items-center justify-center hidden z-30">
-                <div class="spinner w-16 h-16 border-8 border-gray-600 rounded-full"></div>
-                <p class="mt-4 text-xl text-gray-300">Загрузка видео...</p>
+            <!-- Карточка "Обычное яйцо" -->
+            <div class="egg-card">
+                <div class="egg-image">
+                    <!-- Изображение теперь максимально заполняет контейнер по ширине -->
+                    <img 
+                        src="https://files.catbox.moe/zi8onw.png" 
+                        alt="Обычное яйцо" 
+                        onerror="this.onerror=null; this.src='https://placehold.co/150x150/374151/ffffff?text=Яйцо';"
+                    >
+                </div>
+                <span class="egg-title">Обычное яйцо</span>
+                <!-- Сюда можно будет добавить информацию о прогрессе или действиях -->
             </div>
+
         </div>
+
     </div>
 
-
-    <!-- Кастомное Модальное Сообщение (вместо alert) -->
-    <div id="message-box" class="hidden fixed top-0 left-0 w-full h-full bg-black bg-opacity-75 flex items-center justify-center z-50">
-        <div class="bg-gray-800 p-6 rounded-xl shadow-2xl max-w-sm text-center">
-            <p class="text-white text-lg mb-4" id="box-message"></p>
-            <button onclick="document.getElementById('message-box').classList.add('hidden')" class="bg-custom-red text-white px-4 py-2 rounded-lg hover:bg-custom-red-hover">Закрыть</button>
+    <!-- Панель управления снизу -->
+    <div class="nav-panel">
+        <!-- 1. Элемент "Главная" -->
+        <div id="homeButton" class="nav-item" onclick="switchTab('home')">
+            <!-- Иконка Домика (SVG) -->
+            <svg class="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+            <span class="nav-text">Главная</span>
         </div>
+        
+        <!-- 2. Элемент "Инвентарь" -->
+        <div id="inventoryButton" class="nav-item" onclick="switchTab('inventory')">
+            <!-- Иконка Рюкзака/Сумки (SVG) -->
+            <svg class="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <path d="M16 10a4 4 0 0 1-8 0"></path>
+            </svg>
+            <span class="nav-text">Инвентарь</span>
+        </div>
+
+        <!-- 3. Элемент "Яйца" -->
+        <div id="eggButton" class="nav-item active" onclick="switchTab('egg')">
+            <!-- Иконка Яйца (SVG) -->
+            <svg class="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <!-- Овальная форма яйца, чтобы соответствовала стилю -->
+                <path d="M12 2 C15 2 17 8 17 14 C17 20 15 22 12 22 C9 22 7 20 7 14 C7 8 9 2 12 2z" />
+            </svg>
+            <span class="nav-text">Яйца</span>
+        </div>
+
     </div>
 
-
-    <script type="text/javascript">
-        // Инициализация элементов
-        const loadingScreen = document.getElementById('loading-screen');
-        const mainScreen = document.getElementById('main-screen');
-        const videoScreen = document.getElementById('video-screen');
-        const battleVideo = document.getElementById('battle-video');
-        // Элементы визуализатора удалены
-        const loadingMessage = document.getElementById('loading-message');
-        const startButton = document.getElementById('start-button');
-        const messageBox = document.getElementById('message-box');
-        const boxMessage = document.getElementById('box-message');
-        const videoLoading = document.getElementById('video-loading'); 
-
-        // Ключ для кэша в localStorage
-        const CACHE_KEY = 'appCacheLoaded';
-        
-        // =================================================================
-        // ВАШ СПИСОК ВИДЕО
-        // =================================================================
-        const VIDEO_LIST = [
-            'https://files.catbox.moe/y09yxd.mp4', // Видео 1
-            'https://files.catbox.moe/lpgf7b.mp4', // Видео 2
-            'https://files.catbox.moe/9wgpqh.mp4', // Видео 3
-            'https://files.catbox.moe/0es5aa.mp4', // Видео 4 (Добавлено)
-        ];
-        let currentVideoIndex = 0;
-        
-        // =================================================================
-        // Функции визуализатора удалены
-        // =================================================================
-
-        /**
-         * Отображает кастомное модальное сообщение (вместо alert()).
-         * @param {string} message Сообщение для отображения.
-         */
-        function showMessage(message) {
-            boxMessage.textContent = message;
-            messageBox.classList.remove('hidden');
-        }
-
-        /**
-         * Симулирует загрузку ресурсов (с кэшированием видео).
-         */
-        async function simulateLoad() {
-            const isFirstLoad = localStorage.getItem(CACHE_KEY) === null;
-            const startTime = performance.now();
-            let messageText;
-            const minLoadTime = 500; 
-
-            if (isFirstLoad) {
-                messageText = 'Кэш не найден. Первая загрузка будет долгой: загружаем все видео и ждем их полной загрузки...';
-                loadingMessage.textContent = messageText;
-
-                try {
-                    // Асинхронно запускаем загрузку всех видео с принудительным кэшированием
-                    const fetchPromises = VIDEO_LIST.map(url => 
-                        fetch(url, { mode: 'cors', cache: 'force-cache' }) 
-                    );
-                    
-                    // Ждем, пока ВСЕ промисы завершатся (т.е. все видео загрузятся)
-                    await Promise.all(fetchPromises);
-                    
-                    const elapsed = performance.now() - startTime;
-                    const remainingTime = Math.max(0, 3000 - elapsed); 
-
-                    // Гарантируем минимальную задержку 3 секунды
-                    await new Promise(resolve => setTimeout(resolve, remainingTime));
-                    
-                    localStorage.setItem(CACHE_KEY, 'true');
-                    messageText = 'Видео успешно закэшированы! Теперь все будет быстро.';
-
-                } catch (e) {
-                    console.error("Ошибка при предварительной загрузке видео:", e);
-                    messageText = 'Ошибка кэширования. Продолжаем, но загрузка может быть долгой.';
-                    // Гарантируем минимальную задержку 3 секунды даже при ошибке
-                    await new Promise(resolve => setTimeout(resolve, 3000)); 
-                }
-
-            } else {
-                messageText = 'Кэш найден! Загрузка займет всего полсекунды.';
-                loadingMessage.textContent = messageText;
-                await new Promise(resolve => setTimeout(resolve, minLoadTime));
-            }
-
-            loadingMessage.textContent = messageText; 
-            loadingScreen.style.opacity = '0';
-            
-            setTimeout(() => {
-                loadingScreen.classList.add('hidden');
-                mainScreen.classList.remove('hidden');
-                mainScreen.style.opacity = '1'; 
-            }, 1000);
-        }
-        
-        /**
-         * Воспроизводит видео по заданному индексу.
-         */
-        function playVideo(index) {
-            if (index >= VIDEO_LIST.length) {
-                showMessage("Схватка окончена! Все видео были показаны.");
-                currentVideoIndex = 0; 
-                
-                videoScreen.classList.add('hidden');
-                mainScreen.classList.remove('hidden');
-                return;
-            }
-
-            currentVideoIndex = index;
-            battleVideo.src = VIDEO_LIST[currentVideoIndex];
-            videoLoading.classList.remove('hidden'); 
-            
-            battleVideo.load();
-            
-            // Если звук не включится автоматически, пользователю, возможно, потребуется нажать на экран/видео.
-            battleVideo.play().then(() => {
-                videoLoading.classList.add('hidden'); 
-            }).catch(e => {
-                videoLoading.classList.add('hidden'); 
-                console.error(`Ошибка при воспроизведении видео №${index + 1} (${VIDEO_LIST[currentVideoIndex]}):`, e);
-                showMessage(`Ошибка воспроизведения видео №${index + 1}.`);
-                playVideo(currentVideoIndex + 1);
+    <script>
+        // Функция для переключения вкладок
+        function switchTab(tabId) {
+            // 1. Скрываем все экраны и убираем активный класс со всех кнопок
+            const views = document.querySelectorAll('.game-view');
+            views.forEach(view => {
+                view.classList.remove('active');
             });
-        }
-        
-        /**
-         * Запускает последовательное воспроизведение видео.
-         */
-        function startBattle() {
-            mainScreen.classList.add('hidden');
-            videoScreen.classList.remove('hidden');
+
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                item.classList.remove('active');
+            });
             
-            currentVideoIndex = 0; 
-            playVideo(currentVideoIndex);
+            // 2. Показываем нужный экран и делаем его кнопку активной
+            const targetView = document.getElementById(tabId + '-view');
+            const targetButton = document.getElementById(tabId + 'Button');
+
+            if (targetView) {
+                targetView.classList.add('active');
+            }
+            if (targetButton) {
+                targetButton.classList.add('active');
+            }
+
+            console.log(`Переход на вкладку: ${tabId}`);
         }
 
-
-        // =================================================================
-        // СЛУШАТЕЛИ СОБЫТИЙ
-        // =================================================================
-
-        // Запуск симуляции загрузки при старте
-        window.onload = () => {
-            simulateLoad();
-        };
-
-        // Обработчик кнопки "Начать схватку"
-        startButton.addEventListener('click', startBattle);
-        
-        // Обработчик для автоматического переключения видео, когда текущее заканчивается
-        battleVideo.addEventListener('ended', () => {
-            playVideo(currentVideoIndex + 1);
-        });
+        // Принудительно переключаем на вкладку "Яйца" при загрузке, чтобы увидеть изменения
+        switchTab('egg'); 
         
     </script>
-
 </body>
 </html>
